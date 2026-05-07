@@ -74,7 +74,7 @@
     // CSVを読み込んで表を作る関数
     function loadCSV(fileName, targetId) {
         // パスが正しいか確認（DataフォルダのDが大文字か小文字か注意）
-        Papa.parse(`Data/${fileName}.csv`, {
+        Papa.parse(`data/${fileName}.csv`, {
             download: true,
             header: true,
             skipEmptyLines: true,
