@@ -20,8 +20,67 @@
         th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: left; }
         th { background: #fdfdfd; color: #888; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
         .loading { text-align: center; color: #999; padding: 20px; }
+
+        /* 枠線・バッジのエフェクト */
+        .frame-effect {
+            display: inline-block;
+            padding: 2px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            font-weight: bold;
+            color: #333;
+            cursor: pointer; /* タップ可能であることを示す */
+        }
+
+        /* スキル種別バッジ */
+        .type-badge {
+            display: inline-block;
+            width: 1.2rem;
+            height: 1.2rem;
+            line-height: 1.2rem;
+            text-align: center;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            margin-right: 4px;
+            color: white;
+            font-weight: bold;
+        }
+        .type-A { background: #e74c3c; } /* 物理 */
+        .type-M { background: #3498db; } /* 魔法 */
+        .type-P { background: #2ecc71; } /* パッシブ */
+
+        /* 詳細モーダルのスタイル */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            background: white;
+            margin: 15% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .close-btn { float: right; cursor: pointer; font-size: 1.5rem; }
+
     </style>
 </head>
+    <!-- containerの終わりの後、bodyの終わりの前 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">詳細情報</h2>
+            <hr>
+            <div id="modalBody" style="text-align: left; margin-top: 20px; line-height: 1.6;"></div>
+        </div>
+    </div>
 <body>
 
 <div class="container">
@@ -46,35 +105,58 @@
 </div>
 
 <script>
-    // --- 設定：ここで表示したい列（ヘッダー名）を正確に指定します ---
     const COLUMN_SETTINGS = {
-        'weapon':    ['#' , '名称', 'スキル1', 'スキル2', 'スキル3'],
-        'shield':    ['#' , '名称', 'スキル1', 'スキル2', 'スキル3'],
-        'armor':     ['#' , '名称', 'スキル1', 'スキル2', 'スキル3'],
-        'accessory': ['#' , '名称', 'スキル1', 'スキル2', 'スキル3'],
-        'pet':       ['#' , '名称', 'スキル1', 'スキル2', 'スキル3']
+        'weapon':    ['#', '名称', 'スキル1', 'スキル2', 'スキル3'],
+        'shield':    ['#', '名称', 'スキル1', 'スキル2', 'スキル3'],
+        'armor':     ['#', '名称', 'スキル1', 'スキル2', 'スキル3'],
+        'accessory': ['#', '名称', 'スキル1', 'スキル2', 'スキル3'],
+        'pet':       ['#', '名称', 'スキル1', 'スキル2', 'スキル3']
     };
 
-    // タブ切り替え機能（修正版：eventを引数で受け取るように変更）
-    function showTab(tabId, event) {
-        // すべての表示を消す
-        document.querySelectorAll('.table-container').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        
-        // 選択されたコンテンツを表示
-        const target = document.getElementById(tabId);
-        if (target) target.classList.add('active');
+    let skillData = {};
 
-        // クリックされたボタンをアクティブにする（eventが存在する場合のみ）
-        if (event && event.currentTarget) {
-            event.currentTarget.classList.add('active');
-        }
+    // --- 追加：詳細表示と閉じる機能 ---
+    function showDetail(title, content) {
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalBody').innerHTML = content;
+        document.getElementById('detailModal').style.display = "block";
     }
 
-    // CSVを読み込んで表を作る関数
+    function closeModal() {
+        document.getElementById('detailModal').style.display = "none";
+    }
+
+    // 画面のどこかをタップしたらモーダルを閉じる設定
+    window.onclick = function(event) {
+        const modal = document.getElementById('detailModal');
+        if (event.target == modal) closeModal();
+    };
+    // ------------------------------
+
+    function showTab(tabId, event) {
+        document.querySelectorAll('.table-container').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        const target = document.getElementById(tabId);
+        if (target) target.classList.add('active');
+        if (event && event.currentTarget) event.currentTarget.classList.add('active');
+    }
+
+    function loadSkillMaster() {
+        Papa.parse("Data/skill.csv", {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                results.data.forEach(row => {
+                    if (row['名称']) skillData[row['名称'].trim()] = row;
+                });
+                loadAllTables();
+            }
+        });
+    }
+
     function loadCSV(fileName, targetId) {
-        // パスが正しいか確認（DataフォルダのDが大文字か小文字か注意）
-        Papa.parse(`data/${fileName}.csv`, {
+        Papa.parse(`Data/${fileName}.csv`, {
             download: true,
             header: true,
             skipEmptyLines: true,
@@ -84,44 +166,49 @@
                 const targetColumns = COLUMN_SETTINGS[targetId];
                 
                 if (!container) return;
-                if (data.length === 0) {
-                    container.innerHTML = "<p>データがありません。</p>";
-                    return;
-                }
-
                 let html = '<table><thead><tr>';
-                targetColumns.forEach(colName => {
-                    html += `<th>${colName}</th>`;
-                });
+                targetColumns.forEach(colName => { html += `<th>${colName}</th>`; });
                 html += '</tr></thead><tbody>';
 
                 data.forEach(row => {
                     html += '<tr>';
                     targetColumns.forEach(colName => {
-                        const cellValue = row[colName.trim()]; 
-                        html += `<td>${cellValue !== undefined ? cellValue : '-'}</td>`;
+                        let cellValue = (row[colName.trim()] || '-').trim();
+                        
+                        if (colName === '名称') {
+                            // 名称クリック時の詳細（CSVに「入手場所」などの列がある前提）
+                            let info = `入手: ${row['入手場所'] || row['入手方法'] || '-'}`;
+                            html += `<td><span class="frame-effect" onclick="showDetail('${cellValue}', '${info}')">${cellValue}</span></td>`;
+                        } 
+                        else if (colName.includes('スキル') && cellValue !== '-') {
+                            const s = skillData[cellValue];
+                            if (s) {
+                                const type = s['種別'] || '?';
+                                const desc = s['説明'] || '説明なし';
+                                html += `<td>
+                                    <span class="type-badge type-${type}">${type}</span>
+                                    <span class="frame-effect" onclick="showDetail('${cellValue}', '【種別：${type}】<br><br>${desc}')">${cellValue}</span>
+                                </td>`;
+                            } else {
+                                html += `<td>${cellValue}</td>`;
+                            }
+                        } else {
+                            html += `<td>${cellValue}</td>`;
+                        }
                     });
                     html += '</tr>';
                 });
                 html += '</tbody></table>';
-                
                 container.innerHTML = html;
-            },
-            error: function() {
-                const container = document.getElementById(targetId);
-                if (container) container.innerHTML = "<p>CSV読み込み失敗。ファイル名を確認してください。</p>";
             }
         });
     }
 
-    // 起動時に実行
-    window.onload = function() {
-        loadCSV('weapon', 'weapon');
-        loadCSV('shield', 'shield');
-        loadCSV('armor', 'armor');
-        loadCSV('accessory', 'accessory');
-        loadCSV('pet', 'pet');
-    };
+    function loadAllTables() {
+        Object.keys(COLUMN_SETTINGS).forEach(key => loadCSV(key, key));
+    }
+
+    window.onload = loadSkillMaster;
 </script>
 
 </body>
