@@ -1,66 +1,32 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ひまつぶトレジャー 攻略DB</title>
-    <!-- CSVを読み込むためのライブラリ -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <style>
-        :root { --primary: #e67e22; --bg: #f8f9fa; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        h1 { text-align: center; color: #2c3e50; font-size: 1.4rem; margin-bottom: 20px; }
-        .tabs { display: flex; overflow-x: auto; gap: 8px; margin-bottom: 15px; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
-        .tab-btn { padding: 8px 16px; border: none; background: #e9ecef; cursor: pointer; border-radius: 20px; white-space: nowrap; font-weight: bold; color: #666; }
-        .tab-btn.active { background: var(--primary); color: white; }
-        .table-container { display: none; overflow-x: auto; }
-        .table-container.active { display: block; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
-        th, td { border-bottom: 1px solid #eee; padding: 12px 8px; text-align: left; }
-        th { background: #fdfdfd; color: #888; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
-        .loading { text-align: center; color: #999; padding: 20px; }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h1>ひまつぶトレジャー DB</h1>
-
-    <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('weapon')">武器</button>
-        <button class="tab-btn" onclick="showTab('shield')">盾</button>
-        <button class="tab-btn" onclick="showTab('armor')">防具</button>
-        <button class="tab-btn" onclick="showTab('accessory')">アクセサリ</button>
-        <button class="tab-btn" onclick="showTab('pet')">ペット</button>
-    </div>
-
-    <!-- 各カテゴリの表示エリア -->
-    <div id="weapon" class="table-container active"><div class="loading">読み込み中...</div></div>
-    <div id="shield" class="table-container"><div class="loading">読み込み中...</div></div>
-    <div id="armor" class="table-container"><div class="loading">読み込み中...</div></div>
-    <div id="accessory" class="table-container"><div class="loading">読み込み中...</div></div>
-    <div id="pet" class="table-container"><div class="loading">読み込み中...</div></div>
-</div>
-
 <script>
+    // --- 設定：ここで表示したい列（ヘッダー名）を正確に指定します ---
+    const COLUMN_SETTINGS = {
+        'weapon':    ['名称', 'スキル1', 'スキル2', 'スキル3'],
+        'shield':    ['名称', 'スキル1', 'スキル2', 'スキル3'],
+        'armor':     ['名称', 'スキル1', 'スキル2', 'スキル3'],
+        'accessory': ['名称', 'スキル1', 'スキル2', 'スキル3'],
+        'pet':       ['名称', 'スキル1', 'スキル2', 'スキル3']
+    };
+
     // タブ切り替え機能
     function showTab(tabId) {
         document.querySelectorAll('.table-container').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
+        // クリックされたボタンをアクティブにする
         event.currentTarget.classList.add('active');
     }
 
     // CSVを読み込んで表を作る関数
     function loadCSV(fileName, targetId) {
-        Papa.parse(`data/${fileName}.csv`, {
+        Papa.parse(`Data/${fileName}.csv`, {
             download: true,
-            header: true, // 1行目を項目名として扱う
+            header: true,
             skipEmptyLines: true,
             complete: function(results) {
                 const data = results.data;
                 const container = document.getElementById(targetId);
+                const targetColumns = COLUMN_SETTINGS[targetId]; // 固定列の設定を取得
                 
                 if (data.length === 0) {
                     container.innerHTML = "<p>データがありません。</p>";
@@ -69,17 +35,20 @@
 
                 // テーブルの組み立て
                 let html = '<table><thead><tr>';
-                // ヘッダー（項目名）の作成
-                Object.keys(data[0]).forEach(key => {
-                    html += `<th>${key}</th>`;
+                
+                // 1. 固定されたヘッダーを作成
+                targetColumns.forEach(colName => {
+                    html += `<th>${colName}</th>`;
                 });
                 html += '</tr></thead><tbody>';
 
-                // 行データの作成
+                // 2. データの行を作成（固定列に指定したものだけを抽出）
                 data.forEach(row => {
                     html += '<tr>';
-                    Object.values(row).forEach(val => {
-                        html += `<td>${val || '-'}</td>`;
+                    targetColumns.forEach(colName => {
+                        // CSVの列名と一致するデータを取得。なければ「-」を表示
+                        const cellValue = row[colName.trim()]; 
+                        html += `<td>${cellValue !== undefined ? cellValue : '-'}</td>`;
                     });
                     html += '</tr>';
                 });
@@ -88,12 +57,12 @@
                 container.innerHTML = html;
             },
             error: function() {
-                document.getElementById(targetId).innerHTML = "<p>読み込み失敗。ファイル名を確認してください。</p>";
+                document.getElementById(targetId).innerHTML = "<p>CSV読み込み失敗。ファイル名やフォルダ構成を確認してください。</p>";
             }
         });
     }
 
-    // ページが開かれた時にすべてのCSVを読み込む
+    // 起動時に実行
     window.onload = function() {
         loadCSV('weapon', 'weapon');
         loadCSV('shield', 'shield');
@@ -102,6 +71,3 @@
         loadCSV('pet', 'pet');
     };
 </script>
-
-</body>
-</html>
