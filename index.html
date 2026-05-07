@@ -142,7 +142,7 @@
     }
 
     function loadSkillMaster() {
-        Papa.parse("Data/skill.csv", {
+        Papa.parse("data/skill.csv", {
             download: true,
             header: true,
             skipEmptyLines: true,
@@ -166,6 +166,7 @@
                 const targetColumns = COLUMN_SETTINGS[targetId];
                 
                 if (!container) return;
+                html += '</tr>';
                 let html = '<table><thead><tr>';
                 targetColumns.forEach(colName => { html += `<th>${colName}</th>`; });
                 html += '</tr></thead><tbody>';
@@ -196,7 +197,6 @@
                             html += `<td>${cellValue}</td>`;
                         }
                     });
-                    html += '</tr>';
                 });
                 html += '</tbody></table>';
                 container.innerHTML = html;
