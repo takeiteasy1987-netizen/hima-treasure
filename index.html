@@ -31,7 +31,7 @@
             box-shadow: 1px 1px 2px rgba(0,0,0,0.1);
             font-weight: bold;
             color: #333;
-            cursor: pointer; /* タップ可能であることを示す */
+            cursor: pointer;
         }
 
         /* スキル種別バッジ */
@@ -69,18 +69,8 @@
             text-align: center;
         }
         .close-btn { float: right; cursor: pointer; font-size: 1.5rem; }
-
     </style>
 </head>
-    <!-- containerの終わりの後、bodyの終わりの前 -->
-    <div id="detailModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal()">&times;</span>
-            <h2 id="modalTitle">詳細情報</h2>
-            <hr>
-            <div id="modalBody" style="text-align: left; margin-top: 20px; line-height: 1.6;"></div>
-        </div>
-    </div>
 <body>
 
 <div class="container">
@@ -94,14 +84,22 @@
         <button class="tab-btn" onclick="showTab('pet', event)">ペット</button>
     </div>
 
-    </div>
-
     <!-- 各カテゴリの表示エリア -->
     <div id="weapon" class="table-container active"><div class="loading">読み込み中...</div></div>
     <div id="shield" class="table-container"><div class="loading">読み込み中...</div></div>
     <div id="armor" class="table-container"><div class="loading">読み込み中...</div></div>
     <div id="accessory" class="table-container"><div class="loading">読み込み中...</div></div>
     <div id="pet" class="table-container"><div class="loading">読み込み中...</div></div>
+</div>
+
+<!-- モーダルHTMLはbodyの中に配置 -->
+<div id="detailModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitle">詳細情報</h2>
+        <hr>
+        <div id="modalBody" style="text-align: left; margin-top: 20px; line-height: 1.6;"></div>
+    </div>
 </div>
 
 <script>
@@ -115,7 +113,6 @@
 
     let skillData = {};
 
-    // --- 追加：詳細表示と閉じる機能 ---
     function showDetail(title, content) {
         document.getElementById('modalTitle').innerText = title;
         document.getElementById('modalBody').innerHTML = content;
@@ -126,12 +123,10 @@
         document.getElementById('detailModal').style.display = "none";
     }
 
-    // 画面のどこかをタップしたらモーダルを閉じる設定
     window.onclick = function(event) {
         const modal = document.getElementById('detailModal');
         if (event.target == modal) closeModal();
     };
-    // ------------------------------
 
     function showTab(tabId, event) {
         document.querySelectorAll('.table-container').forEach(el => el.classList.remove('active'));
@@ -142,6 +137,7 @@
     }
 
     function loadSkillMaster() {
+        // パスは大文字小文字に注意 (dataかDataか)
         Papa.parse("data/skill.csv", {
             download: true,
             header: true,
@@ -151,6 +147,10 @@
                     if (row['名称']) skillData[row['名称'].trim()] = row;
                 });
                 loadAllTables();
+            },
+            error: function() {
+                console.error("skill.csvの読み込みに失敗しました");
+                loadAllTables(); // 失敗しても他を読み込む
             }
         });
     }
@@ -166,7 +166,7 @@
                 const targetColumns = COLUMN_SETTINGS[targetId];
                 
                 if (!container) return;
-                html += '</tr>';
+
                 let html = '<table><thead><tr>';
                 targetColumns.forEach(colName => { html += `<th>${colName}</th>`; });
                 html += '</tr></thead><tbody>';
@@ -177,7 +177,6 @@
                         let cellValue = (row[colName.trim()] || '-').trim();
                         
                         if (colName === '名称') {
-                            // 名称クリック時の詳細（CSVに「入手場所」などの列がある前提）
                             let info = `入手: ${row['入手場所'] || row['入手方法'] || '-'}`;
                             html += `<td><span class="frame-effect" onclick="showDetail('${cellValue}', '${info}')">${cellValue}</span></td>`;
                         } 
@@ -186,10 +185,7 @@
                             if (s) {
                                 const type = s['種別'] || '?';
                                 const desc = s['説明'] || '説明なし';
-                                html += `<td>
-                                    <span class="type-badge type-${type}">${type}</span>
-                                    <span class="frame-effect" onclick="showDetail('${cellValue}', '【種別：${type}】<br><br>${desc}')">${cellValue}</span>
-                                </td>`;
+                                html += `<td><span class="type-badge type-${type}">${type}</span><span class="frame-effect" onclick="showDetail('${cellValue}', '【種別：${type}】<br><br>${desc}')">${cellValue}</span></td>`;
                             } else {
                                 html += `<td>${cellValue}</td>`;
                             }
@@ -197,6 +193,7 @@
                             html += `<td>${cellValue}</td>`;
                         }
                     });
+                    html += '</tr>';
                 });
                 html += '</tbody></table>';
                 container.innerHTML = html;
