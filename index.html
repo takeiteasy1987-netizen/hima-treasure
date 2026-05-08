@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HIMATSUBU DB - ULTRA PRECISION v7</title>
+    <title>HIMATSUBU DB - ULTRA PRECISION v8</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root {
@@ -16,7 +16,7 @@
             --border: #333;
             --success: #00e676;
             --highlight: #ffde03;
-            --update-color: #ff7597;
+            --update-color: #ff7597; /* +1pt専用色 */
         }
 
         body { font-family: sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; font-size: 14px; }
@@ -50,9 +50,10 @@
         .combo-item div { font-size: 0.85rem; color: var(--secondary); cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
         .active-skills-box { display: flex; flex-wrap: wrap; gap: 4px; }
-        .pt-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; background: #222; color: #777; border: 1px solid #333; cursor: pointer; }
+        .pt-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; background: #222; color: #777; border: 1px solid #333; cursor: pointer; }
         .pt-badge.activated { background: rgba(0, 230, 118, 0.1); color: var(--success); border-color: var(--success); }
-        .pt-badge.update-applied { border-color: var(--update-color); color: var(--update-color); font-weight: bold; }
+        /* ここが重要：+1されたスキルの見た目 */
+        .pt-badge.update-applied { border-color: var(--update-color); color: var(--update-color); font-weight: bold; border-width: 2px; }
 
         /* 図鑑用 */
         .tabs { display: flex; overflow-x: auto; gap: 5px; margin-bottom: 15px; }
@@ -165,7 +166,7 @@
     function showItemDetail(cat, itemName) {
         const item = categoryData[cat].find(i => i.名称 === itemName);
         if (!item) return;
-        let html = `<div>${['スキル1','スキル2','スキル3'].map(k => (item[k] && item[k]!=='-') ? `<span class="skill-tag" onclick="showSkillDetail('${item[k]}')">${item[k]}</span>` : '').join('')}</div>`;
+        let html = `<div>${['スキル1','スキル2','スキル3'].map(k => (item[k] && item[k]!=='-') ? `<span class="skill-tag" onclick="event.stopPropagation(); showSkillDetail('${item[k]}')">${item[k]}</span>` : '').join('')}</div>`;
         html += `<div class="mastery-list">`;
         ["100pt","250pt","500pt","1000pt","2500pt","3500pt","5000pt","7500pt","10000pt"].forEach(pt => {
             if(item[pt] && item[pt] !== '-') html += `<div class="mastery-item"><span class="mastery-pt">${pt}</span><span>${item[pt]}</span></div>`;
@@ -176,7 +177,7 @@
         document.getElementById('detailModal').style.display = 'block';
     }
 
-    // --- インデックス＋スマートスキャンの新ロジック ---
+    // --- 網羅検索ロジック ---
     function runSmartScan() {
         if (selectedSkills.size === 0) return alert("スキルを選択してください");
         const targets = Array.from(selectedSkills);
@@ -190,18 +191,15 @@
                 if (lockedName) {
                     candidates[cat] = categoryData[cat].filter(i => i.名称 === lockedName);
                 } else {
-                    // 【全網羅】ターゲットスキルを持つ全装備を抽出
                     const hasSkill = categoryData[cat].filter(item => 
                         targets.some(t => [item.スキル1, item.スキル2, item.スキル3].includes(t))
                     );
-                    // 【予備】スキルを持たないが、穴埋めとして使うためのベース装備（各カテゴリ先頭5件）
                     const baseItems = categoryData[cat].slice(0, 5);
                     candidates[cat] = [...new Set([...hasSkill, ...baseItems])];
                 }
             });
 
             let rawPatterns = [];
-            // 高速な5重ループ
             for (let w of candidates.weapon) {
                 for (let s of candidates.shield) {
                     for (let a of candidates.armor) {
@@ -214,20 +212,21 @@
                                     });
                                 });
 
-                                // マスタリー+1の適用
+                                // マスタリーによる+1ptの判定
                                 let updateSkill = null;
                                 const cands = Object.keys(counts).filter(k => counts[k] === 2);
                                 if (cands.length > 0) {
+                                    // 目標スキルの2ptを優先、なければ他のスキル
                                     updateSkill = cands.find(k => targets.includes(k)) || cands[0];
                                     counts[updateSkill]++;
                                 }
 
-                                // 目標をすべて3pt以上で満たしているか
                                 if (targets.every(t => (counts[t] || 0) >= 3)) {
                                     let activeCount = Object.values(counts).filter(v => v >= 3).length;
                                     rawPatterns.push({
                                         combo: [w, s, a, ac, p],
-                                        counts, activeCount, updateSkill,
+                                        counts: {...counts}, // 値をコピー
+                                        activeCount, updateSkill,
                                         key: Object.keys(counts).filter(k => counts[k] >= 3).sort().join(',')
                                     });
                                 }
@@ -237,7 +236,6 @@
                 }
             }
 
-            // 結果のグルーピング
             const grouped = {};
             rawPatterns.forEach(p => {
                 if(!grouped[p.key]) grouped[p.key] = { main: p, others: [] };
@@ -265,11 +263,13 @@
                         ${p.combo.map((item, i) => `<div class="combo-item"><span>${catLabels[categories[i]]}</span><div onclick="showItemDetail('${categories[i]}','${item.名称}')">${item.名称}</div></div>`).join('')}
                     </div>
                     <div class="active-skills-box">
-                        ${Object.entries(p.counts).sort((a,b)=>b[1]-a[1]).map(([name, pt]) => `
-                            <span class="pt-badge ${pt>=3?'activated':''} ${name===p.updateSkill?'update-applied':''}" onclick="event.stopPropagation(); showSkillDetail('${name}')">
-                                ${name} ${pt}pt
-                            </span>
-                        `).join('')}
+                        ${Object.entries(p.counts).sort((a,b)=>b[1]-a[1]).map(([name, pt]) => {
+                            const isUpdated = name === p.updateSkill;
+                            const badgeClass = `pt-badge ${pt>=3?'activated':''} ${isUpdated?'update-applied':''}`;
+                            return `<span class="${badgeClass}" onclick="event.stopPropagation(); showSkillDetail('${name}')">
+                                ${name} ${pt}pt${isUpdated ? ' (+1)' : ''}
+                            </span>`;
+                        }).join('')}
                     </div>
                     ${g.others.length > 0 ? `
                         <details>
