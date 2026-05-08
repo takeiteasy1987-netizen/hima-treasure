@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HIMATSUBU TREASURE DB - EXPERT</title>
+    <title>HIMATSUBU DB - Skill Match 3</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root {
@@ -18,54 +18,48 @@
             --error: #cf6679;
         }
 
-        body { font-family: sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; line-height: 1.4; }
+        body { font-family: sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 
         /* メインタブ */
         .main-nav { display: flex; background: #1a1a1a; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
         .main-tab-btn { flex: 1; padding: 15px; border: none; background: none; color: var(--text-dim); font-weight: bold; cursor: pointer; border-bottom: 3px solid transparent; }
-        .main-tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: rgba(187, 134, 252, 0.05); }
+        .main-tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
 
         .content-section { display: none; padding-top: 20px; }
         .content-section.active { display: block; }
 
-        /* スキル選択パネル */
-        .skill-selector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 15px; max-height: 250px; overflow-y: auto; padding: 10px; background: #000; border-radius: 10px; border: 1px solid var(--border); }
-        .skill-chip { padding: 8px; font-size: 0.8rem; background: #222; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .skill-chip.selected { background: var(--primary); color: #000; border-color: var(--primary); font-weight: bold; }
+        /* スキル選択 */
+        .skill-selector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 15px; max-height: 250px; overflow-y: auto; padding: 10px; background: #000; border-radius: 10px; }
+        .skill-chip { padding: 8px; font-size: 0.8rem; background: #222; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; text-align: center; }
+        .skill-chip.selected { background: var(--primary); color: #000; font-weight: bold; }
 
-        /* シミュレーション結果 */
-        .result-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 15px; padding: 20px; margin-bottom: 25px; position: relative; border-left: 5px solid var(--secondary); }
+        /* 結果カード */
+        .result-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 15px; padding: 20px; margin-bottom: 25px; position: relative; border-left: 5px solid var(--success); }
         .rank-badge { position: absolute; top: -10px; left: 15px; background: var(--primary); color: #000; padding: 2px 12px; border-radius: 10px; font-weight: bold; font-size: 0.8rem; }
         .combo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
-        .combo-item { font-size: 0.8rem; padding: 10px; background: #2a2a2a; border-radius: 8px; border: 1px solid #333; }
+        .combo-item { font-size: 0.8rem; padding: 10px; background: #2a2a2a; border-radius: 8px; }
         .active-skills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         
-        /* スキルバッジ */
-        .active-badge { padding: 4px 10px; border-radius: 6px; background: rgba(46, 204, 113, 0.15); border: 1px solid var(--success); color: var(--success); font-size: 0.75rem; font-weight: bold; }
-        .target-active { background: var(--success); color: #000; border: 1px solid #fff; } /* 選択したスキルが発動した場合 */
-        .skill-lv-badge { padding: 4px 10px; border-radius: 6px; background: #333; border: 1px solid #444; color: var(--text-dim); font-size: 0.75rem; }
+        .active-badge { padding: 4px 10px; border-radius: 6px; background: rgba(46, 204, 113, 0.2); border: 1px solid var(--success); color: var(--success); font-size: 0.75rem; font-weight: bold; }
+        .target-active { background: var(--success); color: #000; }
+        .skill-lv-badge { padding: 4px 10px; border-radius: 6px; background: #333; color: var(--text-dim); font-size: 0.75rem; }
 
-        /* 装備一覧スタイル */
-        .tabs { display: flex; overflow-x: auto; gap: 8px; margin-bottom: 15px; padding-bottom: 5px; }
-        .tab-btn { padding: 8px 18px; border-radius: 20px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; white-space: nowrap; }
-        .tab-btn.active { background: var(--primary); color: #000; font-weight: bold; }
+        /* 装備一覧 */
+        .tabs { display: flex; overflow-x: auto; gap: 8px; margin-bottom: 15px; }
+        .tab-btn { padding: 8px 18px; border-radius: 20px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; }
+        .tab-btn.active { background: var(--primary); color: #000; }
         .grid-container { display: none; gap: 15px; grid-template-columns: 1fr; }
         .grid-container.active { display: grid; }
         @media (min-width: 600px) { .grid-container.active { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1000px) { .grid-container.active { grid-template-columns: repeat(4, 1fr); } }
 
         .item-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; }
-        .item-name { color: var(--secondary); font-weight: bold; cursor: pointer; border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; font-size: 1rem; }
-        .skill-btn { background: #2a2a2a; border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin: 2px; color: var(--text-main); }
-        
-        .type-badge { font-size: 0.65rem; width: 16px; height: 16px; line-height: 16px; text-align: center; border-radius: 3px; font-weight: bold; color: #fff; }
-        .type-A { background: var(--error); }
-        .type-M { background: var(--secondary); color: #000; }
-        .type-P { background: var(--primary); color: #000; }
+        .item-name { color: var(--secondary); font-weight: bold; cursor: pointer; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+        .skill-btn { background: #2a2a2a; border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; margin: 2px; display: inline-flex; }
 
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
-        .modal-content { background: var(--card-bg); margin: 15% auto; padding: 25px; width: 85%; max-width: 400px; border-radius: 16px; position: relative; border: 1px solid var(--border); }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); }
+        .modal-content { background: var(--card-bg); margin: 15% auto; padding: 25px; width: 85%; max-width: 400px; border-radius: 16px; position: relative; }
         .close-btn { position: absolute; right: 15px; top: 10px; font-size: 1.8rem; cursor: pointer; }
     </style>
 </head>
@@ -77,7 +71,7 @@
 </nav>
 
 <div class="container">
-    <!-- 装備一覧 -->
+    <!-- リスト -->
     <section id="list-section" class="content-section active">
         <div class="tabs">
             <button class="tab-btn active" onclick="switchSubTab('weapon', event)">武器</button>
@@ -96,16 +90,13 @@
     <!-- シミュレーター -->
     <section id="sim-section" class="content-section">
         <div style="background: var(--card-bg); padding: 20px; border-radius: 15px; border: 1px solid var(--border);">
-            <h3 style="margin-top:0; color:var(--primary);">🎯 発動させたいスキルを選択</h3>
-            <p style="font-size:0.8rem; color:var(--text-dim);">※選択したスキルが「全て3つ以上揃う」組み合わせの中から、全スキルの発動数が多い順に表示します。</p>
+            <h3 style="margin-top:0; color:var(--primary);">🎯 スキル選択（3つでLv.MAX発動）</h3>
             <div id="skillListPanel" class="skill-selector-grid"></div>
-            
-            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <button onclick="clearSelectedSkills()" style="background:none; border: 1px solid var(--border); color:var(--text-dim); padding: 10px 20px; border-radius: 8px; cursor:pointer;">リセット</button>
-                <button onclick="runAdvancedSim()" style="background: var(--secondary); color:#000; border:none; padding: 12px 35px; border-radius: 8px; font-weight:bold; cursor:pointer; font-size: 1rem;">最適な構成を検索</button>
+            <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                <button onclick="clearSelectedSkills()" style="background:none; border:1px solid #444; color:#888; padding:10px; border-radius:8px; cursor:pointer;">リセット</button>
+                <button onclick="runAdvancedSim()" style="background: var(--secondary); color:#000; border:none; padding: 10px 40px; border-radius:8px; font-weight:bold; cursor:pointer;">最適な組み合わせを表示</button>
             </div>
         </div>
-
         <div id="simResultsArea" style="margin-top: 30px;"></div>
     </section>
 </div>
@@ -113,8 +104,8 @@
 <div id="detailModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal()">&times;</span>
-        <h2 id="modalTitle" style="color:var(--primary); margin: 0;"></h2>
-        <div id="modalBody" style="margin-top:20px; line-height: 1.6;"></div>
+        <h2 id="modalTitle" style="color:var(--primary); margin:0;"></h2>
+        <div id="modalBody" style="margin-top:20px; line-height:1.6;"></div>
     </div>
 </div>
 
@@ -137,14 +128,9 @@
         e.currentTarget.classList.add('active');
     }
 
-    function toggleSkill(skillName, element) {
-        if (selectedSkills.has(skillName)) {
-            selectedSkills.delete(skillName);
-            element.classList.remove('selected');
-        } else {
-            selectedSkills.add(skillName);
-            element.classList.add('selected');
-        }
+    function toggleSkill(name, el) {
+        if (selectedSkills.has(name)) { selectedSkills.delete(name); el.classList.remove('selected'); }
+        else { selectedSkills.add(name); el.classList.add('selected'); }
     }
 
     function clearSelectedSkills() {
@@ -156,27 +142,25 @@
     function runAdvancedSim() {
         if (selectedSkills.size === 0) return alert("スキルを選択してください");
         const resultsArea = document.getElementById('simResultsArea');
-        resultsArea.innerHTML = "<div style='text-align:center; padding:20px;'>最強の組み合わせを計算中...</div>";
+        resultsArea.innerHTML = "<div style='text-align:center;'>探索中...</div>";
 
         setTimeout(() => {
             const targets = Array.from(selectedSkills);
             const filtered = {};
-            
-            // ターゲットスキルを1つでも持っている装備を優先抽出
             Object.keys(categoryData).forEach(cat => {
                 filtered[cat] = categoryData[cat].filter(item => 
                     [item['スキル1'], item['スキル2'], item['スキル3']].some(s => targets.includes(s))
                 );
-                if(filtered[cat].length === 0) filtered[cat] = categoryData[cat].slice(0, 30);
+                if(filtered[cat].length === 0) filtered[cat] = categoryData[cat].slice(0, 10);
             });
 
             let patterns = [];
-            // パフォーマンスのため探索範囲を絞る
-            const wL = filtered.weapon.slice(0, 12);
-            const sL = filtered.shield.slice(0, 12);
-            const aL = filtered.armor.slice(0, 12);
-            const acL = filtered.accessory.slice(0, 12);
-            const pL = filtered.pet.slice(0, 12);
+            // 高速化のため各カテゴリ上位10件でマッチング
+            const wL = filtered.weapon.slice(0, 10);
+            const sL = filtered.shield.slice(0, 10);
+            const aL = filtered.armor.slice(0, 10);
+            const acL = filtered.accessory.slice(0, 10);
+            const pL = filtered.pet.slice(0, 10);
 
             for (let w of wL) {
                 for (let s of sL) {
@@ -192,17 +176,12 @@
                                     });
                                 });
 
-                                // ルール1: 選択したスキルが全て3つ以上揃っているか
-                                const allTargetsActive = targets.every(t => (counts[t] || 0) >= 3);
-                                
-                                if (allTargetsActive) {
-                                    // ルール3: 発動している全スキルの数をカウント
-                                    let totalActiveCount = 0;
-                                    Object.keys(counts).forEach(sk => {
-                                        if (counts[sk] >= 3) totalActiveCount++;
-                                    });
-
-                                    patterns.push({ combo, counts, totalActiveCount });
+                                // 選択スキルが全て「3つ以上」あるか
+                                const ok = targets.every(t => (counts[t] || 0) >= 3);
+                                if (ok) {
+                                    let totalActive = 0;
+                                    Object.keys(counts).forEach(sk => { if (counts[sk] >= 3) totalActive++; });
+                                    patterns.push({ combo, counts, totalActive });
                                 }
                             }
                         }
@@ -210,19 +189,18 @@
                 }
             }
 
-            // 総発動数が多い順にソート
-            patterns.sort((a,b) => b.totalActiveCount - a.totalActiveCount);
+            patterns.sort((a,b) => b.totalActive - a.totalActive);
             const top5 = patterns.slice(0, 5);
 
             if(top5.length === 0) {
-                resultsArea.innerHTML = "<div class='result-card' style='border-left-color:var(--error)'>指定したスキルを全て同時に発動できる組み合わせが見つかりませんでした。スキルの数を減らすか、別の組み合わせを試してください。</div>";
+                resultsArea.innerHTML = "条件に合う（3つずつ揃う）組み合わせが見つかりませんでした。";
                 return;
             }
 
-            let html = `<h2 style="color:var(--secondary); margin-bottom:15px;">🏆 最適構成 TOP5</h2>`;
+            let html = `<h2 style="color:var(--secondary)">🏆 最適化済み構成 TOP5</h2>`;
             top5.forEach((p, idx) => {
                 html += `<div class="result-card">
-                    <div class="rank-badge">RANK ${idx + 1} (全 ${p.totalActiveCount} スキル発動)</div>
+                    <div class="rank-badge">RANK ${idx + 1} (発動スキル数: ${p.totalActive})</div>
                     <div class="combo-grid">
                         <div class="combo-item"><strong>武器:</strong><br>${p.combo[0].名称}</div>
                         <div class="combo-item"><strong>盾:</strong><br>${p.combo[1].名称}</div>
@@ -230,18 +208,12 @@
                         <div class="combo-item"><strong>アクセ:</strong><br>${p.combo[3].名称}</div>
                         <div class="combo-item"><strong>ペット:</strong><br>${p.combo[4].名称}</div>
                     </div>
-                    <div style="margin-top:15px;">
-                        <div style="font-size:0.8rem; color:var(--primary); font-weight:bold; margin-bottom:8px;">📊 発動・構成スキル一覧:</div>
-                        <div class="active-skills">
-                            ${Object.entries(p.counts).sort((a,b) => b[1] - a[1]).map(([name, lv]) => {
-                                const isActive = lv >= 3;
-                                const isTarget = targets.includes(name);
-                                let badgeClass = isActive ? 'active-badge' : 'skill-lv-badge';
-                                if (isActive && isTarget) badgeClass += ' target-active';
-                                
-                                return `<span class="${badgeClass}">${name} Lv.${lv}</span>`;
-                            }).join('')}
-                        </div>
+                    <div class="active-skills">
+                        ${Object.entries(p.counts).sort((a,b) => b[1]-a[1]).map(([n, lv]) => {
+                            const act = lv >= 3;
+                            const isT = targets.includes(n);
+                            return `<span class="${act ? (isT ? 'active-badge target-active' : 'active-badge') : 'skill-lv-badge'}">${n} Lv.${lv >= 3 ? 'MAX' : lv}</span>`;
+                        }).join('')}
                     </div>
                 </div>`;
             });
@@ -281,16 +253,12 @@
         let html = '';
         data.forEach(row => {
             if (!row['名称']) return;
-            html += `<div class="item-card">
-                <div class="item-name" onclick="showDetail('${row['名称']}', '入手: ${row['入手場所']||row['入手方法']||'-'}')">${row['名称']}</div>
-                <div class="item-skills">`;
+            html += `<div class="item-card"><div class="item-name" onclick="showDetail('${row['名称']}', '入手: ${row['入手場所']||row['入手方法']||'-'}')">${row['名称']}</div><div class="item-skills">`;
             ['スキル1', 'スキル2', 'スキル3'].forEach(sk => {
-                const name = (row[sk]||'-').trim();
-                if (name !== '-' && name !== '') {
+                const name = (row[sk]||'').trim();
+                if (name && name !== '-') {
                     const s = skillData[name];
-                    html += `<div class="skill-btn" onclick="showDetail('${name}', '${s?s.説明:'データなし'}')">
-                        ${s?`<span class="type-badge type-${s.種別}">${s.種別}</span>`:''} ${name}
-                    </div>`;
+                    html += `<div class="skill-btn" onclick="showDetail('${name}', '${s?s.説明:'なし'}')">${name}</div>`;
                 }
             });
             html += `</div></div>`;
@@ -298,11 +266,7 @@
         container.innerHTML = html;
     }
 
-    function showDetail(t, c) {
-        document.getElementById('modalTitle').innerText = t;
-        document.getElementById('modalBody').innerHTML = c;
-        document.getElementById('detailModal').style.display = "block";
-    }
+    function showDetail(t, c) { document.getElementById('modalTitle').innerText = t; document.getElementById('modalBody').innerHTML = c; document.getElementById('detailModal').style.display = "block"; }
     function closeModal() { document.getElementById('detailModal').style.display = "none"; }
     window.onclick = e => { if(e.target == document.getElementById('detailModal')) closeModal(); }
     window.onload = loadData;
