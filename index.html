@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HIMATSUBU DB - ULTRA PRECISION v3</title>
+    <title>HIMATSUBU DB - ULTRA PRECISION v4</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root {
@@ -41,7 +41,7 @@
         
         .combo-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 12px 0; padding-bottom: 10px; border-bottom: 1px solid #333; }
         .combo-item span { color: var(--text-dim); display: block; font-size: 0.65rem; }
-        .combo-item div { font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--secondary); }
+        .combo-item div { font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--secondary); cursor: pointer; text-decoration: underline; text-decoration-color: #444; }
         
         .active-skills-box { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px; }
         .pt-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; background: #222; color: #777; border: 1px solid #333; cursor: pointer; }
@@ -49,26 +49,27 @@
         .pt-badge.target { border-color: var(--highlight); color: var(--highlight); }
         .pt-badge.update-applied { border-color: var(--update-color); color: var(--update-color); font-weight: bold; }
 
-        /* 折り畳み表示（他装備例） */
-        details { margin-top: 15px; border-top: 1px dashed #444; }
-        summary { padding: 10px 0; font-size: 0.8rem; cursor: pointer; color: var(--primary); outline: none; text-align: center; }
-        .sub-result-container { border-left: 2px solid #333; padding-left: 15px; margin-top: 10px; }
-
         /* 装備図鑑用 */
         .tabs { display: flex; overflow-x: auto; gap: 5px; margin-bottom: 15px; }
         .tab-btn { padding: 8px 15px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; }
         .tab-btn.active { background: var(--primary); color: #000; font-weight: bold; }
         .grid-container { display: none; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
         .grid-container.active { display: grid; }
-        .item-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+        .item-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer; }
+        .item-card:hover { border-color: var(--secondary); }
         .item-name { color: var(--secondary); font-weight: bold; margin-bottom: 8px; font-size: 0.9rem; }
-        .skill-tag { display: inline-block; background: #222; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; margin: 2px; color: #ccc; border: 1px solid #333; cursor: pointer; }
+        .skill-tag { display: inline-block; background: #222; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; margin: 2px; color: #ccc; border: 1px solid #333; }
 
         /* モーダル */
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); }
-        .modal-content { background: #1a1a1a; margin: 20% auto; padding: 20px; width: 85%; max-width: 400px; border-radius: 8px; border: 1px solid var(--primary); }
-
-        .btn-main { background: var(--secondary); color:#000; border:none; padding: 12px; border-radius:6px; font-weight:bold; cursor:pointer; width: 100%; margin-top: 10px; }
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); overflow-y: auto; }
+        .modal-content { background: #1a1a1a; margin: 10% auto; padding: 20px; width: 85%; max-width: 450px; border-radius: 12px; border: 1px solid var(--primary); position: relative; }
+        .modal-title { color: var(--secondary); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .mastery-list { background: #000; padding: 10px; border-radius: 6px; margin-top: 10px; font-family: monospace; font-size: 0.8rem; line-height: 1.5; }
+        .mastery-item { display: flex; border-bottom: 1px solid #222; padding: 2px 0; }
+        .mastery-pt { color: var(--highlight); width: 70px; flex-shrink: 0; }
+        
+        .btn-close { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #666; font-size: 1.5rem; cursor: pointer; }
+        .btn-main { background: var(--secondary); color:#000; border:none; padding: 12px; border-radius:6px; font-weight:bold; cursor:pointer; width: 100%; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -107,8 +108,9 @@
 <!-- 詳細モーダル -->
 <div id="detailModal" class="modal" onclick="closeModal()">
     <div class="modal-content" onclick="event.stopPropagation()">
-        <h3 id="modalTitle" style="color:var(--primary); margin-top:0;"></h3>
-        <p id="modalBody" style="line-height:1.6; color:#ccc;"></p>
+        <button class="btn-close" onclick="closeModal()">&times;</button>
+        <h3 id="modalTitle" class="modal-title"></h3>
+        <div id="modalBody"></div>
         <button class="btn-main" onclick="closeModal()">閉じる</button>
     </div>
 </div>
@@ -117,6 +119,7 @@
     let skillData = {};
     let categoryData = { weapon:[], shield:[], armor:[], accessory:[], pet:[] };
     let selectedSkills = new Set();
+    const masteryPts = ["100pt", "250pt", "500pt", "1000pt", "2500pt", "3500pt", "5000pt", "7500pt", "10000pt"];
 
     function switchMainTab(id, e) {
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
@@ -137,27 +140,63 @@
         else if (selectedSkills.size < 3) { selectedSkills.add(name); el.classList.add('selected'); }
     }
 
-    // スキル詳細表示
+    // --- 詳細表示ロジック ---
+
     function showSkillDetail(name) {
         const info = skillData[name];
-        document.getElementById('modalTitle').innerText = name;
-        document.getElementById('modalBody').innerText = info ? info['説明'] : "詳細情報はありません。";
+        document.getElementById('modalTitle').innerText = `スキル：${name}`;
+        document.getElementById('modalBody').innerHTML = `
+            <p style="color:var(--text-main); font-size:1rem; line-height:1.6;">
+                ${info && info['説明'] ? info['説明'] : "説明文が登録されていません。"}
+            </p>
+        `;
+        document.getElementById('detailModal').style.display = 'block';
+    }
+
+    function showItemDetail(cat, itemName) {
+        const item = categoryData[cat].find(i => i.名称 === itemName);
+        if (!item) return;
+
+        let html = `<div style="margin-bottom:15px;">`;
+        ['スキル1', 'スキル2', 'スキル3'].forEach(k => {
+            const sName = item[k];
+            if (sName && sName !== '-') {
+                html += `<span class="skill-tag" onclick="showSkillDetail('${sName}')">${sName}</span>`;
+            }
+        });
+        html += `</div><div style="font-weight:bold; color:var(--primary); font-size:0.8rem; margin-top:15px;">🛡️ マスタリースキル</div><div class="mastery-list">`;
+        
+        masteryPts.forEach(pt => {
+            const skill = item[pt];
+            if (skill && skill !== '-') {
+                html += `<div class="mastery-item"><span class="mastery-pt">${pt}</span><span>${skill}</span></div>`;
+            }
+        });
+        html += `</div>`;
+
+        document.getElementById('modalTitle').innerText = item.名称;
+        document.getElementById('modalBody').innerHTML = html;
         document.getElementById('detailModal').style.display = 'block';
     }
 
     function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
 
-    // カードHTML生成（メイン結果・他装備例共通）
+    // --- シミュレーション & HTML生成 ---
+
     function createResultCardHTML(p, targets, title = "") {
+        const cats = ['weapon', 'shield', 'armor', 'accessory', 'pet'];
+        const catLabels = ['武器', '盾', '防具', 'アクセサリ', 'ペット'];
+
         return `
             <div class="result-card">
                 ${title ? `<div class="rank-label">${title}</div>` : ""}
                 <div class="combo-row">
-                    <div class="combo-item"><span>武器</span><div>${p.combo[0].名称}</div></div>
-                    <div class="combo-item"><span>盾</span><div>${p.combo[1].名称}</div></div>
-                    <div class="combo-item"><span>防具</span><div>${p.combo[2].名称}</div></div>
-                    <div class="combo-item"><span>アクセサリ</span><div>${p.combo[3].名称}</div></div>
-                    <div class="combo-item"><span>ペット</span><div>${p.combo[4].名称}</div></div>
+                    ${p.combo.map((item, i) => `
+                        <div class="combo-item">
+                            <span>${catLabels[i]}</span>
+                            <div onclick="showItemDetail('${cats[i]}', '${item.名称}')">${item.名称}</div>
+                        </div>
+                    `).join('')}
                 </div>
                 <div class="active-skills-box">
                     ${Object.entries(p.counts).sort((a,b) => b[1]-a[1]).map(([name, pt]) => {
@@ -239,7 +278,7 @@
                 if (up.others.length > 0) {
                     html += `<details>
                         <summary>同じスキル構成の他装備例 (${up.others.length}件) を表示</summary>
-                        <div class="sub-result-container">
+                        <div style="padding-left:15px; border-left: 2px solid #333; margin-top:10px;">
                             ${up.others.slice(0, 5).map(o => createResultCardHTML(o, targets)).join('')}
                         </div>
                     </details>`;
@@ -281,9 +320,9 @@
         container.innerHTML = data.map(row => {
             if (!row['名称']) return '';
             const sks = ['スキル1','スキル2','スキル3'].map(k => row[k]).filter(v => v && v !== '-');
-            return `<div class="item-card">
+            return `<div class="item-card" onclick="showItemDetail('${cat}', '${row['名称']}')">
                 <div class="item-name">${row['名称']}</div>
-                <div>${sks.map(s => `<span class="skill-tag" onclick="showSkillDetail('${s}')">${s}</span>`).join('')}</div>
+                <div>${sks.map(s => `<span class="skill-tag">${s}</span>`).join('')}</div>
             </div>`;
         }).join('');
     }
