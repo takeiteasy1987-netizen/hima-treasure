@@ -3,75 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ひまつぶトレジャー 攻略DB</title>
-    <!-- CSVを読み込むためのライブラリ -->
+    <title>ひまつぶトレジャー 攻略DB - Dark Mode</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-
     <style>
-        /* （既存のroot、bodyなどはそのまま） */
-        
-        /* カードが並ぶコンテナ */
-        .grid-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            padding: 10px 0;
+        /* ダークモード＆スタイリッシュな配色 */
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --primary: #bb86fc;
+            --secondary: #03dac6;
+            --text-main: #e0e0e0;
+            --text-dim: #b0b0b0;
+            --border: #333;
         }
 
-        /* 1つの装備カードの基本設定 */
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+
+        /* タブメニュー */
+        .tabs {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            scrollbar-width: none;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-dim);
+            cursor: pointer;
+            border-radius: 8px;
+            white-space: nowrap;
+            transition: 0.3s;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: #000;
+            font-weight: bold;
+            border-color: var(--primary);
+        }
+
+        /* グリッドレイアウト：PCで5列、スマホで1列 */
+        .grid-container {
+            display: grid;
+            gap: 15px;
+            grid-template-columns: 1fr; /* スマホ用 */
+        }
+        @media (min-width: 600px)  { .grid-container { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 900px)  { .grid-container { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 1200px) { .grid-container { grid-template-columns: repeat(5, 1fr); } }
+
+        /* カードデザイン */
         .item-card {
-            background: #fff;
-            border: 1px solid #ddd;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            /* デフォルト（スマホ）は1列 */
-            width: 100%;
-            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        /* 1行目：名称のスタイル */
+        /* 1行目：名称（タップ可能） */
         .item-name {
-            display: block;
             font-size: 1.1rem;
             font-weight: bold;
-            margin-bottom: 10px;
-            border-bottom: 2px solid var(--primary);
-            padding-bottom: 5px;
+            color: var(--secondary);
+            cursor: pointer;
+            padding: 5px 0;
+            border-bottom: 1px solid var(--border);
+            transition: opacity 0.2s;
         }
+        .item-name:hover { opacity: 0.7; }
 
-        /* 2行目：スキルを並べるエリア */
+        /* 2行目：スキルエリア */
         .item-skills {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
+            gap: 8px;
         }
 
-        /* PC・タブレット向けのレスポンシブ設定 */
-        @media (min-width: 600px) {
-            .item-card { width: calc(50% - 12px); } /* 2列 */
-        }
-        @media (min-width: 900px) {
-            .item-card { width: calc(33.3% - 12px); } /* 3列 */
-        }
-        @media (min-width: 1200px) {
-            .item-card { width: calc(20% - 12px); } /* 5列 */
-        }
-
-        /* 既存のバッジや枠線のスタイルは流用 */
-        .type-badge { /* 前回のまま */ }
-        .frame-effect { /* 前回のまま。カード内でクリックしやすく微調整 */
+        /* スキルボタン（タップ可能） */
+        .skill-btn {
+            background: #2a2a2a;
+            border: 1px solid var(--border);
+            border-radius: 6px;
             padding: 4px 8px;
             font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.2s;
         }
+        .skill-btn:hover { border-color: var(--primary); background: #333; }
+
+        /* 種別バッジ */
+        .type-badge {
+            font-size: 0.7rem;
+            width: 16px;
+            height: 16px;
+            line-height: 16px;
+            text-align: center;
+            border-radius: 3px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .type-A { background: #cf6679; } /* 物理（赤系） */
+        .type-M { background: #03dac6; color: #000; } /* 魔法（青緑） */
+        .type-P { background: #bb86fc; color: #000; } /* パッシブ（紫） */
+
+        /* 詳細モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: var(--card-bg);
+            color: var(--text-main);
+            margin: 15% auto;
+            padding: 25px;
+            width: 85%;
+            max-width: 400px;
+            border-radius: 16px;
+            position: relative;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .close-btn {
+            position: absolute;
+            right: 15px; top: 10px;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: var(--text-dim);
+        }
+        .close-btn:hover { color: var(--primary); }
+
+        .loading { text-align: center; color: var(--text-dim); padding: 50px; }
     </style>
-
-
 </head>
 <body>
 
 <div class="container">
-    <h1>ひまつぶトレジャー DB</h1>
+    <h1>HIMATSUBU TREASURE DB</h1>
 
     <div class="tabs">
         <button class="tab-btn active" onclick="showTab('weapon', event)">武器</button>
@@ -81,33 +182,24 @@
         <button class="tab-btn" onclick="showTab('pet', event)">ペット</button>
     </div>
 
-    <!-- 各カテゴリの表示エリア -->
-    <div id="weapon" class="table-container active"><div class="loading">読み込み中...</div></div>
-    <div id="shield" class="table-container"><div class="loading">読み込み中...</div></div>
-    <div id="armor" class="table-container"><div class="loading">読み込み中...</div></div>
-    <div id="accessory" class="table-container"><div class="loading">読み込み中...</div></div>
-    <div id="pet" class="table-container"><div class="loading">読み込み中...</div></div>
+    <div id="weapon" class="table-container grid-container active"><div class="loading">LOADING...</div></div>
+    <div id="shield" class="table-container grid-container"><div class="loading">LOADING...</div></div>
+    <div id="armor" class="table-container grid-container"><div class="loading">LOADING...</div></div>
+    <div id="accessory" class="table-container grid-container"><div class="loading">LOADING...</div></div>
+    <div id="pet" class="table-container grid-container"><div class="loading">LOADING...</div></div>
 </div>
 
-<!-- モーダルHTMLはbodyの中に配置 -->
+<!-- 詳細モーダル -->
 <div id="detailModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal()">&times;</span>
-        <h2 id="modalTitle">詳細情報</h2>
-        <hr>
-        <div id="modalBody" style="text-align: left; margin-top: 20px; line-height: 1.6;"></div>
+        <h2 id="modalTitle" style="color:var(--primary); margin-top: 0;"></h2>
+        <hr style="border:0; border-top:1px solid var(--border);">
+        <div id="modalBody" style="margin-top: 20px; line-height: 1.8;"></div>
     </div>
 </div>
 
 <script>
-    const COLUMN_SETTINGS = {
-        'weapon':    ['#', '名称', 'スキル1', 'スキル2', 'スキル3'],
-        'shield':    ['#', '名称', 'スキル1', 'スキル2', 'スキル3'],
-        'armor':     ['#', '名称', 'スキル1', 'スキル2', 'スキル3'],
-        'accessory': ['#', '名称', 'スキル1', 'スキル2', 'スキル3'],
-        'pet':       ['#', '名称', 'スキル1', 'スキル2', 'スキル3']
-    };
-
     let skillData = {};
 
     function showDetail(title, content) {
@@ -121,20 +213,17 @@
     }
 
     window.onclick = function(event) {
-        const modal = document.getElementById('detailModal');
-        if (event.target == modal) closeModal();
+        if (event.target == document.getElementById('detailModal')) closeModal();
     };
 
     function showTab(tabId, event) {
         document.querySelectorAll('.table-container').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        const target = document.getElementById(tabId);
-        if (target) target.classList.add('active');
-        if (event && event.currentTarget) event.currentTarget.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+        if (event) event.currentTarget.classList.add('active');
     }
 
     function loadSkillMaster() {
-        // パスは大文字小文字に注意 (dataかDataか)
         Papa.parse("data/skill.csv", {
             download: true,
             header: true,
@@ -144,10 +233,6 @@
                     if (row['名称']) skillData[row['名称'].trim()] = row;
                 });
                 loadAllTables();
-            },
-            error: function() {
-                console.error("skill.csvの読み込みに失敗しました");
-                loadAllTables(); // 失敗しても他を読み込む
             }
         });
     }
@@ -162,48 +247,42 @@
                 const container = document.getElementById(targetId);
                 if (!container) return;
 
-                // テーブルではなく grid-container を作成
-                let html = '<div class="grid-container">';
-
+                let html = '';
                 data.forEach(row => {
                     const name = (row['名称'] || '-').trim();
                     const info = `入手: ${row['入手場所'] || row['入手方法'] || '-'}`;
                     
                     html += `<div class="item-card">`;
-                    
-                    // 1行目：名称
                     html += `<div class="item-name" onclick="showDetail('${name}', '${info}')">${name}</div>`;
-                    
-                    // 2行目：スキルエリア
                     html += `<div class="item-skills">`;
+                    
                     ['スキル1', 'スキル2', 'スキル3'].forEach(skKey => {
-                        const cellValue = (row[skKey] || '-').trim();
-                        if (cellValue !== '-') {
-                            const s = skillData[cellValue];
+                        const skName = (row[skKey] || '-').trim();
+                        if (skName !== '-') {
+                            const s = skillData[skName];
                             if (s) {
                                 const type = s['種別'] || '?';
                                 const desc = s['説明'] || '説明なし';
                                 html += `
-                                    <span class="frame-effect" onclick="showDetail('${cellValue}', '【種別：${type}】<br><br>${desc}')">
-                                        <span class="type-badge type-${type}">${type}</span>${cellValue}
-                                    </span>`;
+                                    <div class="skill-btn" onclick="showDetail('${skName}', '【種別：${type}】<br><br>${desc}')">
+                                        <span class="type-badge type-${type}">${type}</span>
+                                        <span>${skName}</span>
+                                    </div>`;
                             } else {
-                                html += `<span class="frame-effect">${cellValue}</span>`;
+                                html += `<div class="skill-btn"><span>${skName}</span></div>`;
                             }
                         }
                     });
-                    html += `</div>`; // skills終わり
-                    html += `</div>`; // card終わり
+                    
+                    html += `</div></div>`;
                 });
-                
-                html += '</div>'; // grid-container終わり
                 container.innerHTML = html;
             }
         });
     }
 
     function loadAllTables() {
-        Object.keys(COLUMN_SETTINGS).forEach(key => loadCSV(key, key));
+        ['weapon', 'shield', 'armor', 'accessory', 'pet'].forEach(id => loadCSV(id, id));
     }
 
     window.onload = loadSkillMaster;
