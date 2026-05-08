@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HIMATSUBU TREASURE DB - ULTIMATE</title>
+    <title>HIMATSUBU TREASURE DB - EXPERT</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root {
@@ -35,14 +35,15 @@
         .skill-chip.selected { background: var(--primary); color: #000; border-color: var(--primary); font-weight: bold; }
 
         /* シミュレーション結果 */
-        .result-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 15px; padding: 20px; margin-bottom: 25px; position: relative; }
+        .result-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 15px; padding: 20px; margin-bottom: 25px; position: relative; border-left: 5px solid var(--secondary); }
         .rank-badge { position: absolute; top: -10px; left: 15px; background: var(--primary); color: #000; padding: 2px 12px; border-radius: 10px; font-weight: bold; font-size: 0.8rem; }
         .combo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
         .combo-item { font-size: 0.8rem; padding: 10px; background: #2a2a2a; border-radius: 8px; border: 1px solid #333; }
         .active-skills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         
-        /* スキルバッジ（共通） */
+        /* スキルバッジ */
         .active-badge { padding: 4px 10px; border-radius: 6px; background: rgba(46, 204, 113, 0.15); border: 1px solid var(--success); color: var(--success); font-size: 0.75rem; font-weight: bold; }
+        .target-active { background: var(--success); color: #000; border: 1px solid #fff; } /* 選択したスキルが発動した場合 */
         .skill-lv-badge { padding: 4px 10px; border-radius: 6px; background: #333; border: 1px solid #444; color: var(--text-dim); font-size: 0.75rem; }
 
         /* 装備一覧スタイル */
@@ -95,12 +96,13 @@
     <!-- シミュレーター -->
     <section id="sim-section" class="content-section">
         <div style="background: var(--card-bg); padding: 20px; border-radius: 15px; border: 1px solid var(--border);">
-            <h3 style="margin-top:0; color:var(--primary);">1. 発動させたいスキルをタップ</h3>
+            <h3 style="margin-top:0; color:var(--primary);">🎯 発動させたいスキルを選択</h3>
+            <p style="font-size:0.8rem; color:var(--text-dim);">※選択したスキルが「全て3つ以上揃う」組み合わせの中から、全スキルの発動数が多い順に表示します。</p>
             <div id="skillListPanel" class="skill-selector-grid"></div>
             
             <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
                 <button onclick="clearSelectedSkills()" style="background:none; border: 1px solid var(--border); color:var(--text-dim); padding: 10px 20px; border-radius: 8px; cursor:pointer;">リセット</button>
-                <button onclick="runAdvancedSim()" style="background: var(--secondary); color:#000; border:none; padding: 12px 35px; border-radius: 8px; font-weight:bold; cursor:pointer; font-size: 1rem;">最適な組み合わせを検索</button>
+                <button onclick="runAdvancedSim()" style="background: var(--secondary); color:#000; border:none; padding: 12px 35px; border-radius: 8px; font-weight:bold; cursor:pointer; font-size: 1rem;">最適な構成を検索</button>
             </div>
         </div>
 
@@ -154,25 +156,27 @@
     function runAdvancedSim() {
         if (selectedSkills.size === 0) return alert("スキルを選択してください");
         const resultsArea = document.getElementById('simResultsArea');
-        resultsArea.innerHTML = "<div style='text-align:center; padding:20px;'>計算中...</div>";
+        resultsArea.innerHTML = "<div style='text-align:center; padding:20px;'>最強の組み合わせを計算中...</div>";
 
         setTimeout(() => {
             const targets = Array.from(selectedSkills);
             const filtered = {};
+            
+            // ターゲットスキルを1つでも持っている装備を優先抽出
             Object.keys(categoryData).forEach(cat => {
                 filtered[cat] = categoryData[cat].filter(item => 
                     [item['スキル1'], item['スキル2'], item['スキル3']].some(s => targets.includes(s))
                 );
-                if(filtered[cat].length === 0) filtered[cat] = categoryData[cat].slice(0, 50); // 候補がなければ先頭50件
+                if(filtered[cat].length === 0) filtered[cat] = categoryData[cat].slice(0, 30);
             });
 
             let patterns = [];
-            // 計算負荷軽減のため各カテゴリ上位15件でクロス集計
-            const wL = filtered.weapon.slice(0, 15);
-            const sL = filtered.shield.slice(0, 15);
-            const aL = filtered.armor.slice(0, 15);
-            const acL = filtered.accessory.slice(0, 15);
-            const pL = filtered.pet.slice(0, 15);
+            // パフォーマンスのため探索範囲を絞る
+            const wL = filtered.weapon.slice(0, 12);
+            const sL = filtered.shield.slice(0, 12);
+            const aL = filtered.armor.slice(0, 12);
+            const acL = filtered.accessory.slice(0, 12);
+            const pL = filtered.pet.slice(0, 12);
 
             for (let w of wL) {
                 for (let s of sL) {
@@ -188,27 +192,37 @@
                                     });
                                 });
 
-                                let score = 0;
-                                targets.forEach(t => { if(counts[t] >= 3) score++; });
-                                if(score > 0) patterns.push({ combo, counts, score });
+                                // ルール1: 選択したスキルが全て3つ以上揃っているか
+                                const allTargetsActive = targets.every(t => (counts[t] || 0) >= 3);
+                                
+                                if (allTargetsActive) {
+                                    // ルール3: 発動している全スキルの数をカウント
+                                    let totalActiveCount = 0;
+                                    Object.keys(counts).forEach(sk => {
+                                        if (counts[sk] >= 3) totalActiveCount++;
+                                    });
+
+                                    patterns.push({ combo, counts, totalActiveCount });
+                                }
                             }
                         }
                     }
                 }
             }
 
-            patterns.sort((a,b) => b.score - a.score);
+            // 総発動数が多い順にソート
+            patterns.sort((a,b) => b.totalActiveCount - a.totalActiveCount);
             const top5 = patterns.slice(0, 5);
 
             if(top5.length === 0) {
-                resultsArea.innerHTML = "条件に合う組み合わせが見つかりませんでした。";
+                resultsArea.innerHTML = "<div class='result-card' style='border-left-color:var(--error)'>指定したスキルを全て同時に発動できる組み合わせが見つかりませんでした。スキルの数を減らすか、別の組み合わせを試してください。</div>";
                 return;
             }
 
-            let html = `<h2 style="color:var(--secondary); margin-bottom:15px;">🔥 おすすめの組み合わせ TOP5</h2>`;
+            let html = `<h2 style="color:var(--secondary); margin-bottom:15px;">🏆 最適構成 TOP5</h2>`;
             top5.forEach((p, idx) => {
                 html += `<div class="result-card">
-                    <div class="rank-badge">RANK ${idx + 1} (発動数: ${p.score})</div>
+                    <div class="rank-badge">RANK ${idx + 1} (全 ${p.totalActiveCount} スキル発動)</div>
                     <div class="combo-grid">
                         <div class="combo-item"><strong>武器:</strong><br>${p.combo[0].名称}</div>
                         <div class="combo-item"><strong>盾:</strong><br>${p.combo[1].名称}</div>
@@ -217,11 +231,15 @@
                         <div class="combo-item"><strong>ペット:</strong><br>${p.combo[4].名称}</div>
                     </div>
                     <div style="margin-top:15px;">
-                        <div style="font-size:0.8rem; color:var(--primary); font-weight:bold; margin-bottom:8px;">📊 最終スキルセット（合計Lv）:</div>
+                        <div style="font-size:0.8rem; color:var(--primary); font-weight:bold; margin-bottom:8px;">📊 発動・構成スキル一覧:</div>
                         <div class="active-skills">
                             ${Object.entries(p.counts).sort((a,b) => b[1] - a[1]).map(([name, lv]) => {
-                                const active = lv >= 3;
-                                return `<span class="${active ? 'active-badge' : 'skill-lv-badge'}">${name} Lv.${lv}</span>`;
+                                const isActive = lv >= 3;
+                                const isTarget = targets.includes(name);
+                                let badgeClass = isActive ? 'active-badge' : 'skill-lv-badge';
+                                if (isActive && isTarget) badgeClass += ' target-active';
+                                
+                                return `<span class="${badgeClass}">${name} Lv.${lv}</span>`;
                             }).join('')}
                         </div>
                     </div>
