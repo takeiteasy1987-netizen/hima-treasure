@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HIMATSUBU DB - ULTRA PRECISION v5</title>
+    <title>HIMATSUBU DB - ULTRA PRECISION v7</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root {
@@ -30,10 +30,16 @@
         .content-section { display: none; }
         .content-section.active { display: block; }
 
-        /* スキル選択 */
+        /* スキル選択パネル */
         .skill-selector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; margin: 15px 0; max-height: 200px; overflow-y: auto; padding: 10px; background: #050505; border: 1px solid var(--border); border-radius: 8px; }
         .skill-chip { padding: 6px; font-size: 0.7rem; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; cursor: pointer; text-align: center; }
         .skill-chip.selected { background: var(--primary); color: #000; font-weight: bold; }
+
+        /* 固定枠UI */
+        .lock-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
+        .lock-box { background: #111; padding: 8px; border-radius: 6px; border: 1px solid #333; }
+        .lock-box label { display: block; font-size: 0.7rem; color: var(--text-dim); margin-bottom: 4px; }
+        .lock-select { width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 4px; font-size: 0.8rem; outline: none; }
 
         /* 結果カード */
         .result-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; position: relative; }
@@ -41,54 +47,58 @@
         
         .combo-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 12px 0; padding-bottom: 10px; border-bottom: 1px solid #333; }
         .combo-item span { color: var(--text-dim); display: block; font-size: 0.65rem; }
-        .combo-item div { font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--secondary); cursor: pointer; text-decoration: underline; text-decoration-color: #444; }
+        .combo-item div { font-size: 0.85rem; color: var(--secondary); cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .active-skills-box { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px; }
+        .active-skills-box { display: flex; flex-wrap: wrap; gap: 4px; }
         .pt-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; background: #222; color: #777; border: 1px solid #333; cursor: pointer; }
         .pt-badge.activated { background: rgba(0, 230, 118, 0.1); color: var(--success); border-color: var(--success); }
-        .pt-badge.target { border-color: var(--highlight); color: var(--highlight); }
         .pt-badge.update-applied { border-color: var(--update-color); color: var(--update-color); font-weight: bold; }
 
-        /* 装備図鑑用 */
+        /* 図鑑用 */
         .tabs { display: flex; overflow-x: auto; gap: 5px; margin-bottom: 15px; }
-        .tab-btn { padding: 8px 15px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; }
+        .tab-btn { padding: 8px 15px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; white-space: nowrap; }
         .tab-btn.active { background: var(--primary); color: #000; font-weight: bold; }
         .grid-container { display: none; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
         .grid-container.active { display: grid; }
-        .item-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer; position: relative; }
-        .item-card:hover { border-color: var(--secondary); }
-        .item-name { color: var(--secondary); font-weight: bold; margin-bottom: 8px; font-size: 0.9rem; }
+        .item-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer; }
+        .item-name { color: var(--secondary); font-weight: bold; margin-bottom: 8px; }
         .skill-tag { display: inline-block; background: #222; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; margin: 2px; color: #ccc; border: 1px solid #333; cursor: pointer; }
-        .skill-tag:hover { background: #333; color: var(--primary); }
 
         /* モーダル */
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); overflow-y: auto; }
         .modal-content { background: #1a1a1a; margin: 10% auto; padding: 20px; width: 85%; max-width: 450px; border-radius: 12px; border: 1px solid var(--primary); position: relative; }
-        .modal-title { color: var(--secondary); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
         .mastery-list { background: #000; padding: 10px; border-radius: 6px; margin-top: 10px; font-family: monospace; font-size: 0.8rem; line-height: 1.5; }
         .mastery-item { display: flex; border-bottom: 1px solid #222; padding: 2px 0; }
         .mastery-pt { color: var(--highlight); width: 70px; flex-shrink: 0; }
-        
-        .btn-close { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #666; font-size: 1.5rem; cursor: pointer; }
         .btn-main { background: var(--secondary); color:#000; border:none; padding: 12px; border-radius:6px; font-weight:bold; cursor:pointer; width: 100%; margin-top: 15px; }
 
-        details { margin-top: 15px; border-top: 1px dashed #444; }
-        summary { padding: 10px 0; font-size: 0.8rem; cursor: pointer; color: var(--primary); outline: none; text-align: center; }
+        details { margin-top: 10px; border-top: 1px dashed #444; }
+        summary { padding: 10px; font-size: 0.75rem; cursor: pointer; color: var(--primary); text-align: center; }
     </style>
 </head>
 <body>
 
 <nav class="main-nav">
-    <button class="main-tab-btn active" onclick="switchMainTab('sim-section', event)">最強逆引きシミュ</button>
+    <button class="main-tab-btn active" onclick="switchMainTab('sim-section', event)">網羅型シミュレータ</button>
     <button class="main-tab-btn" onclick="switchMainTab('list-section', event)">装備図鑑</button>
 </nav>
 
 <div class="container">
     <section id="sim-section" class="content-section active">
         <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
-            <h3 style="margin-top:0; color:var(--primary); font-size: 1rem;">🎯 目標スキル(3つ)を選択</h3>
+            <h3 style="margin-top:0; color:var(--primary);">🎯 目標スキルを選択 (最大3つ)</h3>
             <div id="skillListPanel" class="skill-selector-grid"></div>
-            <button class="btn-main" onclick="runUltimateSim()">全組み合わせから最強を検索</button>
+            
+            <h3 style="margin-top:20px; color:var(--primary);">🔒 装備固定 (任意)</h3>
+            <div class="lock-container">
+                <div class="lock-box"><label>武器</label><select id="lock-weapon" class="lock-select"><option value="">指定なし</option></select></div>
+                <div class="lock-box"><label>盾</label><select id="lock-shield" class="lock-select"><option value="">指定なし</option></select></div>
+                <div class="lock-box"><label>防具</label><select id="lock-armor" class="lock-select"><option value="">指定なし</option></select></div>
+                <div class="lock-box"><label>アクセ</label><select id="lock-accessory" class="lock-select"><option value="">指定なし</option></select></div>
+                <div class="lock-box"><label>ペット</label><select id="lock-pet" class="lock-select"><option value="">指定なし</option></select></div>
+            </div>
+
+            <button class="btn-main" onclick="runSmartScan()">網羅検索を実行</button>
         </div>
         <div id="simResultsArea" style="margin-top: 30px;"></div>
     </section>
@@ -109,11 +119,9 @@
     </section>
 </div>
 
-<!-- 詳細モーダル -->
 <div id="detailModal" class="modal" onclick="closeModal()">
     <div class="modal-content" onclick="event.stopPropagation()">
-        <button class="btn-close" onclick="closeModal()">&times;</button>
-        <h3 id="modalTitle" class="modal-title"></h3>
+        <h3 id="modalTitle" style="color:var(--secondary); margin-top:0;"></h3>
         <div id="modalBody"></div>
         <button class="btn-main" onclick="closeModal()">閉じる</button>
     </div>
@@ -123,7 +131,8 @@
     let skillData = {};
     let categoryData = { weapon:[], shield:[], armor:[], accessory:[], pet:[] };
     let selectedSkills = new Set();
-    const masteryPts = ["100pt", "250pt", "500pt", "1000pt", "2500pt", "3500pt", "5000pt", "7500pt", "10000pt"];
+    const categories = ['weapon', 'shield', 'armor', 'accessory', 'pet'];
+    const catLabels = { weapon:'武器', shield:'盾', armor:'防具', accessory:'アクセ', pet:'ペット' };
 
     function switchMainTab(id, e) {
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
@@ -144,111 +153,82 @@
         else if (selectedSkills.size < 3) { selectedSkills.add(name); el.classList.add('selected'); }
     }
 
-    // --- 詳細表示 ---
+    function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
 
     function showSkillDetail(name) {
         const info = skillData[name];
         document.getElementById('modalTitle').innerText = `スキル：${name}`;
-        document.getElementById('modalBody').innerHTML = `
-            <p style="color:var(--text-main); font-size:1rem; line-height:1.6; white-space: pre-wrap;">
-                ${info && info['説明'] ? info['説明'] : "説明文が登録されていません。"}
-            </p>
-        `;
+        document.getElementById('modalBody').innerHTML = `<p style="line-height:1.6; white-space:pre-wrap;">${info?.説明 || "説明文が登録されていません。"}</p>`;
         document.getElementById('detailModal').style.display = 'block';
     }
 
     function showItemDetail(cat, itemName) {
         const item = categoryData[cat].find(i => i.名称 === itemName);
         if (!item) return;
-
-        let html = `<div style="margin-bottom:15px;">`;
-        ['スキル1', 'スキル2', 'スキル3'].forEach(k => {
-            const sName = item[k];
-            if (sName && sName !== '-') {
-                html += `<span class="skill-tag" onclick="event.stopPropagation(); showSkillDetail('${sName}')">${sName}</span>`;
-            }
-        });
-        html += `</div><div style="font-weight:bold; color:var(--primary); font-size:0.8rem; margin-top:15px;">🛡️ マスタリースキル</div><div class="mastery-list">`;
-        
-        masteryPts.forEach(pt => {
-            const skill = item[pt];
-            if (skill && skill !== '-') {
-                html += `<div class="mastery-item"><span class="mastery-pt">${pt}</span><span>${skill}</span></div>`;
-            }
+        let html = `<div>${['スキル1','スキル2','スキル3'].map(k => (item[k] && item[k]!=='-') ? `<span class="skill-tag" onclick="showSkillDetail('${item[k]}')">${item[k]}</span>` : '').join('')}</div>`;
+        html += `<div class="mastery-list">`;
+        ["100pt","250pt","500pt","1000pt","2500pt","3500pt","5000pt","7500pt","10000pt"].forEach(pt => {
+            if(item[pt] && item[pt] !== '-') html += `<div class="mastery-item"><span class="mastery-pt">${pt}</span><span>${item[pt]}</span></div>`;
         });
         html += `</div>`;
-
         document.getElementById('modalTitle').innerText = item.名称;
         document.getElementById('modalBody').innerHTML = html;
         document.getElementById('detailModal').style.display = 'block';
     }
 
-    function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
-
-    // --- シミュレーション & HTML生成 ---
-
-    function createResultCardHTML(p, targets, title = "") {
-        const cats = ['weapon', 'shield', 'armor', 'accessory', 'pet'];
-        const catLabels = ['武器', '盾', '防具', 'アクセサリ', 'ペット'];
-
-        return `
-            <div class="result-card">
-                ${title ? `<div class="rank-label">${title}</div>` : ""}
-                <div class="combo-row">
-                    ${p.combo.map((item, i) => `
-                        <div class="combo-item">
-                            <span>${catLabels[i]}</span>
-                            <div onclick="showItemDetail('${cats[i]}', '${item.名称}')">${item.名称}</div>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="active-skills-box">
-                    ${Object.entries(p.counts).sort((a,b) => b[1]-a[1]).map(([name, pt]) => {
-                        const isAct = pt >= 3, isTar = targets.includes(name), isUp = name === p.updateAppliedSkill;
-                        let cls = "pt-badge" + (isAct?" activated":"") + (isTar?" target":"") + (isUp?" update-applied":"");
-                        return `<span class="${cls}" onclick="event.stopPropagation(); showSkillDetail('${name}')">${name} ${pt}pt${isUp?'(+1)':''}</span>`;
-                    }).join('')}
-                </div>
-            </div>`;
-    }
-
-    function runUltimateSim() {
+    // --- インデックス＋スマートスキャンの新ロジック ---
+    function runSmartScan() {
         if (selectedSkills.size === 0) return alert("スキルを選択してください");
+        const targets = Array.from(selectedSkills);
         const resultsArea = document.getElementById('simResultsArea');
-        resultsArea.innerHTML = "<div style='text-align:center;'>全組み合わせを計算中...</div>";
+        resultsArea.innerHTML = "<div style='text-align:center;'>🔍 全データを解析中...</div>";
 
         setTimeout(() => {
-            const targets = Array.from(selectedSkills);
-            let rawPatterns = [];
-            const filtered = {};
-            Object.keys(categoryData).forEach(cat => {
-                filtered[cat] = categoryData[cat].filter(item => ['スキル1','スキル2','スキル3'].some(k => targets.includes(item[k])));
-                if(filtered[cat].length < 15) filtered[cat] = categoryData[cat].slice(0, 20);
+            const candidates = {};
+            categories.forEach(cat => {
+                const lockedName = document.getElementById(`lock-${cat}`).value;
+                if (lockedName) {
+                    candidates[cat] = categoryData[cat].filter(i => i.名称 === lockedName);
+                } else {
+                    // 【全網羅】ターゲットスキルを持つ全装備を抽出
+                    const hasSkill = categoryData[cat].filter(item => 
+                        targets.some(t => [item.スキル1, item.スキル2, item.スキル3].includes(t))
+                    );
+                    // 【予備】スキルを持たないが、穴埋めとして使うためのベース装備（各カテゴリ先頭5件）
+                    const baseItems = categoryData[cat].slice(0, 5);
+                    candidates[cat] = [...new Set([...hasSkill, ...baseItems])];
+                }
             });
 
-            for (let w of filtered.weapon) {
-                for (let s of filtered.shield) {
-                    for (let a of filtered.armor) {
-                        for (let ac of filtered.accessory) {
-                            for (let p of filtered.pet) {
+            let rawPatterns = [];
+            // 高速な5重ループ
+            for (let w of candidates.weapon) {
+                for (let s of candidates.shield) {
+                    for (let a of candidates.armor) {
+                        for (let ac of candidates.accessory) {
+                            for (let p of candidates.pet) {
                                 let counts = {};
                                 [w, s, a, ac, p].forEach(item => {
-                                    ['スキル1','スキル2','スキル3'].forEach(k => {
-                                        const n = (item[k]||'').trim();
-                                        if(n && n !== '-') counts[n] = (counts[n]||0) + 1;
+                                    [item.スキル1, item.スキル2, item.スキル3].forEach(sk => {
+                                        if(sk && sk !== '-') counts[sk] = (counts[sk]||0) + 1;
                                     });
                                 });
-                                let updateAppliedSkill = null;
+
+                                // マスタリー+1の適用
+                                let updateSkill = null;
                                 const cands = Object.keys(counts).filter(k => counts[k] === 2);
                                 if (cands.length > 0) {
-                                    updateAppliedSkill = cands.find(k => targets.includes(k)) || cands[0];
-                                    counts[updateAppliedSkill]++;
+                                    updateSkill = cands.find(k => targets.includes(k)) || cands[0];
+                                    counts[updateSkill]++;
                                 }
+
+                                // 目標をすべて3pt以上で満たしているか
                                 if (targets.every(t => (counts[t] || 0) >= 3)) {
-                                    let activeCount = 0;
-                                    Object.keys(counts).forEach(k => { if(counts[k] >= 3) activeCount++; });
-                                    rawPatterns.push({ combo: [w, s, a, ac, p], counts, activeCount, updateAppliedSkill,
-                                        skillKey: Object.keys(counts).filter(k => counts[k] >= 3).sort().join(',')
+                                    let activeCount = Object.values(counts).filter(v => v >= 3).length;
+                                    rawPatterns.push({
+                                        combo: [w, s, a, ac, p],
+                                        counts, activeCount, updateSkill,
+                                        key: Object.keys(counts).filter(k => counts[k] >= 3).sort().join(',')
                                     });
                                 }
                             }
@@ -257,63 +237,84 @@
                 }
             }
 
+            // 結果のグルーピング
             const grouped = {};
             rawPatterns.forEach(p => {
-                if (!grouped[p.skillKey]) grouped[p.skillKey] = [];
-                grouped[p.skillKey].push(p);
+                if(!grouped[p.key]) grouped[p.key] = { main: p, others: [] };
+                else if(p.activeCount > grouped[p.key].main.activeCount) {
+                    grouped[p.key].others.push(grouped[p.key].main);
+                    grouped[p.key].main = p;
+                } else {
+                    grouped[p.key].others.push(p);
+                }
             });
 
-            let uniquePatterns = Object.values(grouped).map(group => {
-                group.sort((a,b) => b.activeCount - a.activeCount);
-                return { main: group[0], others: group.slice(1) };
-            });
+            const sortedGroups = Object.values(grouped).sort((a,b) => b.main.activeCount - a.main.activeCount).slice(0, 10);
 
-            uniquePatterns.sort((a,b) => b.main.activeCount - a.main.activeCount);
-            const top5 = uniquePatterns.slice(0, 5);
-
-            if(top5.length === 0) {
-                resultsArea.innerHTML = "条件に合う構成が見つかりませんでした。";
+            if(sortedGroups.length === 0) {
+                resultsArea.innerHTML = "❌ 該当する組み合わせが見つかりませんでした。";
                 return;
             }
 
-            let html = `<h2>🏆 スキル構成別ランキング TOP5</h2>`;
-            top5.forEach((up, idx) => {
-                html += createResultCardHTML(up.main, targets, `順位 ${idx+1} (${up.main.activeCount}個発動)`);
-                if (up.others.length > 0) {
-                    html += `<details>
-                        <summary>同じスキル構成の他装備例 (${up.others.length}件) を表示</summary>
-                        <div style="padding-left:15px; border-left: 2px solid #333; margin-top:10px;">
-                            ${up.others.slice(0, 5).map(o => createResultCardHTML(o, targets)).join('')}
-                        </div>
-                    </details>`;
-                }
-            });
-            resultsArea.innerHTML = html;
+            resultsArea.innerHTML = `<h2>🏆 検索結果 (上位${sortedGroups.length}種類の構成)</h2>` + sortedGroups.map((g, idx) => {
+                const p = g.main;
+                return `
+                <div class="result-card">
+                    <div class="rank-label">構成 ${idx+1} (${p.activeCount}スキル発動)</div>
+                    <div class="combo-row">
+                        ${p.combo.map((item, i) => `<div class="combo-item"><span>${catLabels[categories[i]]}</span><div onclick="showItemDetail('${categories[i]}','${item.名称}')">${item.名称}</div></div>`).join('')}
+                    </div>
+                    <div class="active-skills-box">
+                        ${Object.entries(p.counts).sort((a,b)=>b[1]-a[1]).map(([name, pt]) => `
+                            <span class="pt-badge ${pt>=3?'activated':''} ${name===p.updateSkill?'update-applied':''}" onclick="event.stopPropagation(); showSkillDetail('${name}')">
+                                ${name} ${pt}pt
+                            </span>
+                        `).join('')}
+                    </div>
+                    ${g.others.length > 0 ? `
+                        <details>
+                            <summary>このスキル構成の別パターンを表示 (${g.others.length}件)</summary>
+                            ${g.others.slice(0, 3).map(o => `
+                                <div style="margin-top:10px; padding-top:10px; border-top:1px solid #333;">
+                                    <div class="combo-row">${o.combo.map((item, i) => `<div class="combo-item"><span>${catLabels[categories[i]]}</span><div onclick="showItemDetail('${categories[i]}','${item.名称}')">${item.名称}</div></div>`).join('')}</div>
+                                </div>
+                            `).join('')}
+                        </details>
+                    ` : ""}
+                </div>`;
+            }).join('');
         }, 50);
     }
 
-    // --- データ読み込み ---
-
+    // --- データ初期化 ---
     function loadData() {
         Papa.parse("data/skill.csv", {
             download: true, header: true, skipEmptyLines: true,
             complete: function(res) {
-                const panel = document.getElementById('skillListPanel');
                 res.data.forEach(row => {
-                    if (!row['名称']) return;
-                    skillData[row['名称'].trim()] = row;
+                    if(!row.名称) return;
+                    skillData[row.名称.trim()] = row;
                     const chip = document.createElement('div');
                     chip.className = 'skill-chip';
-                    chip.innerText = row['名称'];
-                    chip.onclick = () => toggleSkill(row['名称'], chip);
-                    panel.appendChild(chip);
+                    chip.innerText = row.名称;
+                    chip.onclick = () => toggleSkill(row.名称, chip);
+                    document.getElementById('skillListPanel').appendChild(chip);
                 });
-                ['weapon', 'shield', 'armor', 'accessory', 'pet'].forEach(cat => {
+                
+                categories.forEach(cat => {
                     Papa.parse(`data/${cat}.csv`, {
                         download: true, header: true, skipEmptyLines: true,
                         complete: function(r) {
                             categoryData[cat] = r.data;
                             renderList(cat, r.data);
+                            const select = document.getElementById(`lock-${cat}`);
+                            r.data.forEach(item => {
+                                if(item.名称) {
+                                    const opt = document.createElement('option');
+                                    opt.value = item.名称; opt.innerText = item.名称;
+                                    select.appendChild(opt);
+                                }
+                            });
                         }
                     });
                 });
@@ -324,18 +325,12 @@
     function renderList(cat, data) {
         const container = document.getElementById(cat);
         container.innerHTML = data.map(row => {
-            if (!row['名称']) return '';
+            if(!row.名称) return '';
             const sks = ['スキル1','スキル2','スキル3'].map(k => row[k]).filter(v => v && v !== '-');
             return `
-                <div class="item-card" onclick="showItemDetail('${cat}', '${row['名称']}')">
-                    <div class="item-name">${row['名称']}</div>
-                    <div>
-                        ${sks.map(s => `
-                            <span class="skill-tag" onclick="event.stopPropagation(); showSkillDetail('${s}')">
-                                ${s}
-                            </span>
-                        `).join('')}
-                    </div>
+                <div class="item-card" onclick="showItemDetail('${cat}', '${row.名称}')">
+                    <div class="item-name">${row.名称}</div>
+                    <div>${sks.map(s => `<span class="skill-tag" onclick="event.stopPropagation(); showSkillDetail('${s}')">${s}</span>`).join('')}</div>
                 </div>`;
         }).join('');
     }
