@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HIMATSUBU DB - ULTRA PRECISION v8</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root {
+            color-scheme: dark;
             --bg-color: #0f0f0f;
             --card-bg: #1a1a1a;
             --primary: #bb86fc;
@@ -16,68 +16,92 @@
             --border: #333;
             --success: #00e676;
             --highlight: #ffde03;
-            --update-color: #ff7597; /* +1pt専用色 */
+            --update-color: #ff7597;
         }
 
-        body { font-family: sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; font-size: 14px; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif;
+            background-color: #0f0f0f !important;
+            color: var(--text-main);
+            margin: 0; padding: 0;
+            font-size: 15px;
+            -webkit-text-size-adjust: 100%;
+        }
+        .container { max-width: 1000px; margin: 0 auto; padding: 16px; }
 
         /* ナビゲーション */
         .main-nav { display: flex; background: #000; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
-        .main-tab-btn { flex: 1; padding: 15px; border: none; background: none; color: var(--text-dim); font-weight: bold; cursor: pointer; }
+        .main-tab-btn { flex: 1; padding: 15px; border: none; background: none; color: var(--text-dim); font-weight: bold; cursor: pointer; font-size: 0.95rem; }
         .main-tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: rgba(187,134,252,0.05); }
 
         .content-section { display: none; }
         .content-section.active { display: block; }
 
         /* スキル選択パネル */
-        .skill-selector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; margin: 15px 0; max-height: 200px; overflow-y: auto; padding: 10px; background: #050505; border: 1px solid var(--border); border-radius: 8px; }
-        .skill-chip { padding: 6px; font-size: 0.7rem; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; cursor: pointer; text-align: center; }
+        .skill-selector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; margin: 15px 0; max-height: 220px; overflow-y: auto; padding: 10px; background: #050505; border: 1px solid var(--border); border-radius: 8px; }
+        .skill-chip { padding: 8px 6px; font-size: 0.85rem; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; cursor: pointer; text-align: center; line-height: 1.3; }
         .skill-chip.selected { background: var(--primary); color: #000; font-weight: bold; }
 
         /* 固定枠UI */
-        .lock-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
-        .lock-box { background: #111; padding: 8px; border-radius: 6px; border: 1px solid #333; }
-        .lock-box label { display: block; font-size: 0.7rem; color: var(--text-dim); margin-bottom: 4px; }
-        .lock-select { width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 4px; font-size: 0.8rem; outline: none; }
+        .lock-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 15px 0; }
+        .lock-box { background: #111; padding: 10px; border-radius: 6px; border: 1px solid #333; }
+        .lock-box label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px; }
+        .lock-select { width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 6px 4px; border-radius: 4px; font-size: 0.9rem; outline: none; }
 
         /* 結果カード */
         .result-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; position: relative; }
-        .rank-label { position: absolute; top: -12px; left: 20px; background: var(--secondary); color: #000; padding: 2px 12px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
-        
-        .combo-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 12px 0; padding-bottom: 10px; border-bottom: 1px solid #333; }
-        .combo-item span { color: var(--text-dim); display: block; font-size: 0.65rem; }
-        .combo-item div { font-size: 0.85rem; color: var(--secondary); cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .active-skills-box { display: flex; flex-wrap: wrap; gap: 4px; }
-        .pt-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; background: #222; color: #777; border: 1px solid #333; cursor: pointer; }
+        .rank-label { position: absolute; top: -12px; left: 20px; background: var(--secondary); color: #000; padding: 2px 12px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; }
+
+        .combo-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin: 12px 0; padding-bottom: 10px; border-bottom: 1px solid #333; }
+        .combo-item span { color: var(--text-dim); display: block; font-size: 0.75rem; margin-bottom: 2px; }
+        .combo-item div { font-size: 0.9rem; color: var(--secondary); cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .active-skills-box { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+        .pt-badge { padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; background: #222; color: #777; border: 1px solid #333; cursor: pointer; }
         .pt-badge.activated { background: rgba(0, 230, 118, 0.1); color: var(--success); border-color: var(--success); }
-        /* ここが重要：+1されたスキルの見た目 */
         .pt-badge.update-applied { border-color: var(--update-color); color: var(--update-color); font-weight: bold; border-width: 2px; }
 
         /* 図鑑用 */
-        .tabs { display: flex; overflow-x: auto; gap: 5px; margin-bottom: 15px; }
-        .tab-btn { padding: 8px 15px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; white-space: nowrap; }
+        .tabs { display: flex; overflow-x: auto; gap: 6px; margin-bottom: 15px; -webkit-overflow-scrolling: touch; }
+        .tab-btn { padding: 10px 18px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; white-space: nowrap; font-size: 0.95rem; }
         .tab-btn.active { background: var(--primary); color: #000; font-weight: bold; }
-        .grid-container { display: none; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        .grid-container { display: none; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
         .grid-container.active { display: grid; }
-        .item-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer; }
-        .item-name { color: var(--secondary); font-weight: bold; margin-bottom: 8px; }
-        .skill-tag { display: inline-block; background: #222; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; margin: 2px; color: #ccc; border: 1px solid #333; cursor: pointer; }
+        .item-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; cursor: pointer; }
+        .item-name { color: var(--secondary); font-weight: bold; margin-bottom: 8px; font-size: 1rem; }
+        .skill-tag { display: inline-block; background: #222; padding: 3px 8px; border-radius: 3px; font-size: 0.8rem; margin: 2px; color: #ccc; border: 1px solid #333; cursor: pointer; }
 
         /* モーダル */
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); overflow-y: auto; }
-        .modal-content { background: #1a1a1a; margin: 10% auto; padding: 20px; width: 85%; max-width: 450px; border-radius: 12px; border: 1px solid var(--primary); position: relative; }
-        .mastery-list { background: #000; padding: 10px; border-radius: 6px; margin-top: 10px; font-family: monospace; font-size: 0.8rem; line-height: 1.5; }
-        .mastery-item { display: flex; border-bottom: 1px solid #222; padding: 2px 0; }
-        .mastery-pt { color: var(--highlight); width: 70px; flex-shrink: 0; }
-        .btn-main { background: var(--secondary); color:#000; border:none; padding: 12px; border-radius:6px; font-weight:bold; cursor:pointer; width: 100%; margin-top: 15px; }
+        .modal-content { background: #1a1a1a; margin: 8% auto; padding: 20px; width: 88%; max-width: 450px; border-radius: 12px; border: 1px solid var(--primary); position: relative; }
+        .mastery-list { background: #000; padding: 10px; border-radius: 6px; margin-top: 10px; font-family: monospace; font-size: 0.9rem; line-height: 1.7; }
+        .mastery-item { display: flex; border-bottom: 1px solid #222; padding: 3px 0; }
+        .mastery-pt { color: var(--highlight); width: 75px; flex-shrink: 0; }
+        .btn-main { background: var(--secondary); color:#000; border:none; padding: 14px; border-radius:6px; font-weight:bold; cursor:pointer; width: 100%; margin-top: 15px; font-size: 1rem; }
 
         details { margin-top: 10px; border-top: 1px dashed #444; }
-        summary { padding: 10px; font-size: 0.75rem; cursor: pointer; color: var(--primary); text-align: center; }
+        summary { padding: 10px; font-size: 0.85rem; cursor: pointer; color: var(--primary); text-align: center; }
+
+        /* スマホ向け追加調整 */
+        @media (max-width: 480px) {
+            .main-tab-btn { padding: 14px 8px; font-size: 0.9rem; }
+            .skill-chip { font-size: 0.8rem; }
+            .combo-item div { font-size: 0.85rem; }
+            .pt-badge { font-size: 0.78rem; }
+            .grid-container { grid-template-columns: 1fr; }
+        }
+
+        /* ローディング */
+        #loadingOverlay { position: fixed; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.4s; }
+        #loadingOverlay.hidden { opacity: 0; pointer-events: none; }
+        .loading-text { color: var(--primary); font-size: 1.1rem; letter-spacing: 0.1em; }
     </style>
 </head>
 <body>
+
+<div id="loadingOverlay">
+    <div class="loading-text">⏳ データ読み込み中...</div>
+</div>
 
 <nav class="main-nav">
     <button class="main-tab-btn active" onclick="switchMainTab('sim-section', event)">網羅型シミュレータ</button>
@@ -89,7 +113,7 @@
         <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
             <h3 style="margin-top:0; color:var(--primary);">🎯 目標スキルを選択 (最大3つ)</h3>
             <div id="skillListPanel" class="skill-selector-grid"></div>
-            
+
             <h3 style="margin-top:20px; color:var(--primary);">🔒 装備固定 (任意)</h3>
             <div class="lock-container">
                 <div class="lock-box"><label>武器</label><select id="lock-weapon" class="lock-select"><option value="">指定なし</option></select></div>
@@ -168,7 +192,7 @@
         if (!item) return;
         let html = `<div>${['スキル1','スキル2','スキル3'].map(k => (item[k] && item[k]!=='-') ? `<span class="skill-tag" onclick="event.stopPropagation(); showSkillDetail('${item[k]}')">${item[k]}</span>` : '').join('')}</div>`;
         html += `<div class="mastery-list">`;
-        ["100pt","250pt","500pt","1000pt","2500pt","3500pt","5000pt","7500pt","10000pt"].forEach(pt => {
+        ["100pt","250pt","500pt","1000pt","1500pt","2500pt","3500pt","5000pt","7500pt","10000pt"].forEach(pt => {
             if(item[pt] && item[pt] !== '-') html += `<div class="mastery-item"><span class="mastery-pt">${pt}</span><span>${item[pt]}</span></div>`;
         });
         html += `</div>`;
@@ -178,89 +202,151 @@
     }
 
     // --- 網羅検索ロジック ---
+    let scanWorker = null;
+
     function runSmartScan() {
         if (selectedSkills.size === 0) return alert("スキルを選択してください");
         const targets = Array.from(selectedSkills);
         const resultsArea = document.getElementById('simResultsArea');
-        resultsArea.innerHTML = "<div style='text-align:center;'>🔍 全データを解析中...</div>";
 
-        setTimeout(() => {
-            const candidates = {};
-            categories.forEach(cat => {
-                const lockedName = document.getElementById(`lock-${cat}`).value;
-                if (lockedName) {
-                    candidates[cat] = categoryData[cat].filter(i => i.名称 === lockedName);
-                } else {
-                    const hasSkill = categoryData[cat].filter(item => 
-                        targets.some(t => [item.スキル1, item.スキル2, item.スキル3].includes(t))
-                    );
-                    const baseItems = categoryData[cat].slice(0, 5);
-                    candidates[cat] = [...new Set([...hasSkill, ...baseItems])];
-                }
-            });
+        // 前回の検索が走っていたら中断
+        if (scanWorker) { scanWorker.terminate(); scanWorker = null; }
 
-            let rawPatterns = [];
-            for (let w of candidates.weapon) {
-                for (let s of candidates.shield) {
-                    for (let a of candidates.armor) {
-                        for (let ac of candidates.accessory) {
-                            for (let p of candidates.pet) {
-                                let counts = {};
-                                [w, s, a, ac, p].forEach(item => {
-                                    [item.スキル1, item.スキル2, item.スキル3].forEach(sk => {
-                                        if(sk && sk !== '-') counts[sk] = (counts[sk]||0) + 1;
+        resultsArea.innerHTML = `
+            <div style='text-align:center; padding:30px;'>
+                <div style='color:var(--primary); font-size:1rem; margin-bottom:12px;'>🔍 全装備を総当たり解析中...</div>
+                <div style='color:var(--text-dim); font-size:0.85rem;'>3スキル以上発動する組み合わせをすべて探しています</div>
+                <button onclick="cancelScan()" style='margin-top:16px; background:#333; color:#ccc; border:1px solid #555; padding:8px 20px; border-radius:4px; cursor:pointer;'>キャンセル</button>
+            </div>`;
+
+        // 固定装備を適用した候補リストを作成
+        const candidates = {};
+        categories.forEach(cat => {
+            const lockedName = document.getElementById(`lock-${cat}`).value;
+            candidates[cat] = lockedName
+                ? categoryData[cat].filter(i => i.名称 === lockedName)
+                : categoryData[cat];
+        });
+
+        // Web Worker でバックグラウンド処理（画面フリーズを防ぐ）
+        const workerCode = `
+            self.onmessage = function(e) {
+                const { candidates, targets, categories } = e.data;
+                const grouped = {};
+                let checked = 0;
+                const total = candidates.weapon.length * candidates.shield.length *
+                              candidates.armor.length * candidates.accessory.length * candidates.pet.length;
+
+                for (let w of candidates.weapon) {
+                    for (let s of candidates.shield) {
+                        for (let a of candidates.armor) {
+                            for (let ac of candidates.accessory) {
+                                for (let p of candidates.pet) {
+                                    checked++;
+
+                                    // スキルカウント
+                                    let counts = {};
+                                    [w, s, a, ac, p].forEach(item => {
+                                        [item['スキル1'], item['スキル2'], item['スキル3']].forEach(sk => {
+                                            if (sk && sk !== '-') counts[sk] = (counts[sk] || 0) + 1;
+                                        });
                                     });
-                                });
 
-                                // マスタリーによる+1ptの判定
-                                let updateSkill = null;
-                                const cands = Object.keys(counts).filter(k => counts[k] === 2);
-                                if (cands.length > 0) {
-                                    // 目標スキルの2ptを優先、なければ他のスキル
-                                    updateSkill = cands.find(k => targets.includes(k)) || cands[0];
-                                    counts[updateSkill]++;
-                                }
+                                    // +1pt: 2ptスキルを1つだけ3ptに底上げ（目標スキル優先）
+                                    let updateSkill = null;
+                                    const cands = Object.keys(counts).filter(k => counts[k] === 2);
+                                    if (cands.length > 0) {
+                                        updateSkill = cands.find(k => targets.includes(k)) || cands[0];
+                                        counts[updateSkill]++;
+                                    }
 
-                                if (targets.every(t => (counts[t] || 0) >= 3)) {
-                                    let activeCount = Object.values(counts).filter(v => v >= 3).length;
-                                    rawPatterns.push({
-                                        combo: [w, s, a, ac, p],
-                                        counts: {...counts}, // 値をコピー
-                                        activeCount, updateSkill,
-                                        key: Object.keys(counts).filter(k => counts[k] >= 3).sort().join(',')
-                                    });
+                                    // 目標スキルが全て3pt以上発動、かつ合計3スキル以上発動する組み合わせをすべて対象
+                                    const activeSkills = Object.keys(counts).filter(k => counts[k] >= 3);
+                                    if (targets.every(t => counts[t] >= 3) && activeSkills.length >= 3) {
+                                        const activeCount = activeSkills.length;
+                                        const key = activeSkills.sort().join(',');
+                                        const entry = {
+                                            combo: [w, s, a, ac, p].map(i => i['名称']),
+                                            counts: {...counts},
+                                            activeCount,
+                                            updateSkill,
+                                            key
+                                        };
+                                        if (!grouped[key]) {
+                                            grouped[key] = { main: entry, others: [] };
+                                        } else if (activeCount > grouped[key].main.activeCount) {
+                                            grouped[key].others.push(grouped[key].main);
+                                            grouped[key].main = entry;
+                                        } else {
+                                            grouped[key].others.push(entry);
+                                        }
+                                    }
+
+                                    // 進捗を10万件ごとに通知
+                                    if (checked % 100000 === 0) {
+                                        self.postMessage({ type: 'progress', checked, total });
+                                    }
                                 }
                             }
                         }
                     }
                 }
+
+                const sortedGroups = Object.values(grouped)
+                    .sort((a, b) => b.main.activeCount - a.main.activeCount);
+                self.postMessage({ type: 'done', sortedGroups, total: checked });
+            };
+        `;
+
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        scanWorker = new Worker(URL.createObjectURL(blob));
+
+        scanWorker.onmessage = function(e) {
+            const { type } = e.data;
+            if (type === 'progress') {
+                const pct = Math.floor(e.data.checked / e.data.total * 100);
+                const progressEl = resultsArea.querySelector('.progress-text');
+                if (progressEl) progressEl.textContent = `${pct}% (${e.data.checked.toLocaleString()} / ${e.data.total.toLocaleString()} 通り)`;
+            } else if (type === 'done') {
+                scanWorker = null;
+                renderResults(e.data.sortedGroups, e.data.total, targets);
             }
+        };
 
-            const grouped = {};
-            rawPatterns.forEach(p => {
-                if(!grouped[p.key]) grouped[p.key] = { main: p, others: [] };
-                else if(p.activeCount > grouped[p.key].main.activeCount) {
-                    grouped[p.key].others.push(grouped[p.key].main);
-                    grouped[p.key].main = p;
-                } else {
-                    grouped[p.key].others.push(p);
-                }
-            });
+        scanWorker.onerror = function(err) {
+            resultsArea.innerHTML = `<div style='color:red;'>エラーが発生しました: ${err.message}</div>`;
+        };
 
-            const sortedGroups = Object.values(grouped).sort((a,b) => b.main.activeCount - a.main.activeCount).slice(0, 10);
+        // 進捗表示を追加
+        resultsArea.innerHTML += `<div class='progress-text' style='text-align:center; color:var(--text-dim); font-size:0.8rem; margin-top:8px;'>0%</div>`;
 
-            if(sortedGroups.length === 0) {
-                resultsArea.innerHTML = "❌ 該当する組み合わせが見つかりませんでした。";
-                return;
-            }
+        scanWorker.postMessage({ candidates, targets, categories });
+    }
 
-            resultsArea.innerHTML = `<h2>🏆 検索結果 (上位${sortedGroups.length}種類の構成)</h2>` + sortedGroups.map((g, idx) => {
+    function cancelScan() {
+        if (scanWorker) { scanWorker.terminate(); scanWorker = null; }
+        document.getElementById('simResultsArea').innerHTML = '<div style="text-align:center; color:var(--text-dim);">検索をキャンセルしました。</div>';
+    }
+
+    function renderResults(sortedGroups, total, targets) {
+        const resultsArea = document.getElementById('simResultsArea');
+
+        if (sortedGroups.length === 0) {
+            resultsArea.innerHTML = "❌ 3スキル以上発動する組み合わせが見つかりませんでした。";
+            return;
+        }
+
+        resultsArea.innerHTML =
+            `<h2>🏆 検索結果 <span style='font-size:0.9rem; color:var(--text-dim);'>${sortedGroups.length}種類のスキル構成 / ${total.toLocaleString()}通り解析済み</span></h2>` +
+            sortedGroups.map((g, idx) => {
                 const p = g.main;
+                // combo は名称の配列なので categoryData から item を引く
+                const comboItems = p.combo.map((name, i) => categoryData[categories[i]].find(it => it.名称 === name) || { 名称: name });
                 return `
                 <div class="result-card">
                     <div class="rank-label">構成 ${idx+1} (${p.activeCount}スキル発動)</div>
                     <div class="combo-row">
-                        ${p.combo.map((item, i) => `<div class="combo-item"><span>${catLabels[categories[i]]}</span><div onclick="showItemDetail('${categories[i]}','${item.名称}')">${item.名称}</div></div>`).join('')}
+                        ${comboItems.map((item, i) => `<div class="combo-item"><span>${catLabels[categories[i]]}</span><div onclick="showItemDetail('${categories[i]}','${item.名称}')">${item.名称}</div></div>`).join('')}
                     </div>
                     <div class="active-skills-box">
                         ${Object.entries(p.counts).sort((a,b)=>b[1]-a[1]).map(([name, pt]) => {
@@ -273,59 +359,67 @@
                     </div>
                     ${g.others.length > 0 ? `
                         <details>
-                            <summary>このスキル構成の別パターンを表示 (${g.others.length}件)</summary>
-                            ${g.others.slice(0, 3).map(o => `
+                            <summary>この構成の別パターンを表示 (${g.others.length}件)</summary>
+                            ${g.others.slice(0, 5).map(o => {
+                                const oItems = o.combo.map((name, i) => ({ 名称: name, cat: categories[i] }));
+                                return `
                                 <div style="margin-top:10px; padding-top:10px; border-top:1px solid #333;">
-                                    <div class="combo-row">${o.combo.map((item, i) => `<div class="combo-item"><span>${catLabels[categories[i]]}</span><div onclick="showItemDetail('${categories[i]}','${item.名称}')">${item.名称}</div></div>`).join('')}</div>
-                                </div>
-                            `).join('')}
+                                    <div class="combo-row">${oItems.map((item, i) => `<div class="combo-item"><span>${catLabels[categories[i]]}</span><div onclick="showItemDetail('${categories[i]}','${item.名称}')">${item.名称}</div></div>`).join('')}</div>
+                                </div>`;
+                            }).join('')}
                         </details>
                     ` : ""}
                 </div>`;
             }).join('');
-        }, 50);
     }
 
-    // --- データ初期化 ---
-    function loadData() {
-        Papa.parse("data/skill.csv", {
-            download: true, header: true, skipEmptyLines: true,
-            complete: function(res) {
-                res.data.forEach(row => {
-                    if(!row.名称) return;
-                    skillData[row.名称.trim()] = row;
-                    const chip = document.createElement('div');
-                    chip.className = 'skill-chip';
-                    chip.innerText = row.名称;
-                    chip.onclick = () => toggleSkill(row.名称, chip);
-                    document.getElementById('skillListPanel').appendChild(chip);
+    // --- データ初期化 (JSON版) ---
+    async function loadData() {
+        try {
+            // skill.json を読み込んでスキルチップを生成
+            const skillRes = await fetch('data/skill.json');
+            const skillList = await skillRes.json();
+            skillList.forEach(row => {
+                if (!row.名称) return;
+                skillData[row.名称.trim()] = row;
+                const chip = document.createElement('div');
+                chip.className = 'skill-chip';
+                chip.innerText = row.名称;
+                chip.onclick = () => toggleSkill(row.名称, chip);
+                document.getElementById('skillListPanel').appendChild(chip);
+            });
+
+            // 各カテゴリの JSON を並列取得
+            await Promise.all(categories.map(async cat => {
+                const res = await fetch(`data/${cat}.json`);
+                const data = await res.json();
+                categoryData[cat] = data;
+                renderList(cat, data);
+                const select = document.getElementById(`lock-${cat}`);
+                data.forEach(item => {
+                    if (item.名称) {
+                        const opt = document.createElement('option');
+                        opt.value = item.名称;
+                        opt.innerText = item.名称;
+                        select.appendChild(opt);
+                    }
                 });
-                
-                categories.forEach(cat => {
-                    Papa.parse(`data/${cat}.csv`, {
-                        download: true, header: true, skipEmptyLines: true,
-                        complete: function(r) {
-                            categoryData[cat] = r.data;
-                            renderList(cat, r.data);
-                            const select = document.getElementById(`lock-${cat}`);
-                            r.data.forEach(item => {
-                                if(item.名称) {
-                                    const opt = document.createElement('option');
-                                    opt.value = item.名称; opt.innerText = item.名称;
-                                    select.appendChild(opt);
-                                }
-                            });
-                        }
-                    });
-                });
-            }
-        });
+            }));
+        } catch (e) {
+            console.error('データ読み込みエラー:', e);
+            alert('データの読み込みに失敗しました。data/ フォルダにJSONファイルが存在するか確認してください。');
+        } finally {
+            // ローディング非表示
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.add('hidden');
+            setTimeout(() => overlay.remove(), 400);
+        }
     }
 
     function renderList(cat, data) {
         const container = document.getElementById(cat);
         container.innerHTML = data.map(row => {
-            if(!row.名称) return '';
+            if (!row.名称) return '';
             const sks = ['スキル1','スキル2','スキル3'].map(k => row[k]).filter(v => v && v !== '-');
             return `
                 <div class="item-card" onclick="showItemDetail('${cat}', '${row.名称}')">
