@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HIMATSUBU DB - ULTRA PRECISION v8</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root {
             --bg-color: #0f0f0f;
@@ -16,79 +16,68 @@
             --border: #333;
             --success: #00e676;
             --highlight: #ffde03;
-            --update-color: #ff7597;
+            --update-color: #ff7597; /* +1pt専用色 */
         }
 
-```
-    body { font-family: sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; font-size: 14px; }
-    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        body { font-family: sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; font-size: 14px; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
 
-    /* ナビゲーション */
-    .main-nav { display: flex; background: #000; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
-    .main-tab-btn { flex: 1; padding: 15px; border: none; background: none; color: var(--text-dim); font-weight: bold; cursor: pointer; }
-    .main-tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: rgba(187,134,252,0.05); }
+        /* ナビゲーション */
+        .main-nav { display: flex; background: #000; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
+        .main-tab-btn { flex: 1; padding: 15px; border: none; background: none; color: var(--text-dim); font-weight: bold; cursor: pointer; }
+        .main-tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: rgba(187,134,252,0.05); }
 
-    .content-section { display: none; }
-    .content-section.active { display: block; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
 
-    /* スキル選択パネル */
-    .skill-selector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; margin: 15px 0; max-height: 200px; overflow-y: auto; padding: 10px; background: #050505; border: 1px solid var(--border); border-radius: 8px; }
-    .skill-chip { padding: 6px; font-size: 0.7rem; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; cursor: pointer; text-align: center; }
-    .skill-chip.selected { background: var(--primary); color: #000; font-weight: bold; }
+        /* スキル選択パネル */
+        .skill-selector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; margin: 15px 0; max-height: 200px; overflow-y: auto; padding: 10px; background: #050505; border: 1px solid var(--border); border-radius: 8px; }
+        .skill-chip { padding: 6px; font-size: 0.7rem; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; cursor: pointer; text-align: center; }
+        .skill-chip.selected { background: var(--primary); color: #000; font-weight: bold; }
 
-    /* 固定枠UI */
-    .lock-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
-    .lock-box { background: #111; padding: 8px; border-radius: 6px; border: 1px solid #333; }
-    .lock-box label { display: block; font-size: 0.7rem; color: var(--text-dim); margin-bottom: 4px; }
-    .lock-select { width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 4px; font-size: 0.8rem; outline: none; }
+        /* 固定枠UI */
+        .lock-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
+        .lock-box { background: #111; padding: 8px; border-radius: 6px; border: 1px solid #333; }
+        .lock-box label { display: block; font-size: 0.7rem; color: var(--text-dim); margin-bottom: 4px; }
+        .lock-select { width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 4px; font-size: 0.8rem; outline: none; }
 
-    /* 結果カード */
-    .result-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; position: relative; }
-    .rank-label { position: absolute; top: -12px; left: 20px; background: var(--secondary); color: #000; padding: 2px 12px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+        /* 結果カード */
+        .result-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; position: relative; }
+        .rank-label { position: absolute; top: -12px; left: 20px; background: var(--secondary); color: #000; padding: 2px 12px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+        
+        .combo-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 12px 0; padding-bottom: 10px; border-bottom: 1px solid #333; }
+        .combo-item span { color: var(--text-dim); display: block; font-size: 0.65rem; }
+        .combo-item div { font-size: 0.85rem; color: var(--secondary); cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .active-skills-box { display: flex; flex-wrap: wrap; gap: 4px; }
+        .pt-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; background: #222; color: #777; border: 1px solid #333; cursor: pointer; }
+        .pt-badge.activated { background: rgba(0, 230, 118, 0.1); color: var(--success); border-color: var(--success); }
+        /* ここが重要：+1されたスキルの見た目 */
+        .pt-badge.update-applied { border-color: var(--update-color); color: var(--update-color); font-weight: bold; border-width: 2px; }
 
-    .combo-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 12px 0; padding-bottom: 10px; border-bottom: 1px solid #333; }
-    .combo-item span { color: var(--text-dim); display: block; font-size: 0.65rem; }
-    .combo-item div { font-size: 0.85rem; color: var(--secondary); cursor: pointer; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* 図鑑用 */
+        .tabs { display: flex; overflow-x: auto; gap: 5px; margin-bottom: 15px; }
+        .tab-btn { padding: 8px 15px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; white-space: nowrap; }
+        .tab-btn.active { background: var(--primary); color: #000; font-weight: bold; }
+        .grid-container { display: none; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        .grid-container.active { display: grid; }
+        .item-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer; }
+        .item-name { color: var(--secondary); font-weight: bold; margin-bottom: 8px; }
+        .skill-tag { display: inline-block; background: #222; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; margin: 2px; color: #ccc; border: 1px solid #333; cursor: pointer; }
 
-    .active-skills-box { display: flex; flex-wrap: wrap; gap: 4px; }
-    .pt-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; background: #222; color: #777; border: 1px solid #333; cursor: pointer; }
-    .pt-badge.activated { background: rgba(0, 230, 118, 0.1); color: var(--success); border-color: var(--success); }
-    .pt-badge.update-applied { border-color: var(--update-color); color: var(--update-color); font-weight: bold; border-width: 2px; }
+        /* モーダル */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); overflow-y: auto; }
+        .modal-content { background: #1a1a1a; margin: 10% auto; padding: 20px; width: 85%; max-width: 450px; border-radius: 12px; border: 1px solid var(--primary); position: relative; }
+        .mastery-list { background: #000; padding: 10px; border-radius: 6px; margin-top: 10px; font-family: monospace; font-size: 0.8rem; line-height: 1.5; }
+        .mastery-item { display: flex; border-bottom: 1px solid #222; padding: 2px 0; }
+        .mastery-pt { color: var(--highlight); width: 70px; flex-shrink: 0; }
+        .btn-main { background: var(--secondary); color:#000; border:none; padding: 12px; border-radius:6px; font-weight:bold; cursor:pointer; width: 100%; margin-top: 15px; }
 
-    /* 図鑑用 */
-    .tabs { display: flex; overflow-x: auto; gap: 5px; margin-bottom: 15px; }
-    .tab-btn { padding: 8px 15px; border-radius: 4px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-dim); cursor: pointer; white-space: nowrap; }
-    .tab-btn.active { background: var(--primary); color: #000; font-weight: bold; }
-    .grid-container { display: none; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-    .grid-container.active { display: grid; }
-    .item-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer; }
-    .item-name { color: var(--secondary); font-weight: bold; margin-bottom: 8px; }
-    .skill-tag { display: inline-block; background: #222; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; margin: 2px; color: #ccc; border: 1px solid #333; cursor: pointer; }
-
-    /* モーダル */
-    .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); overflow-y: auto; }
-    .modal-content { background: #1a1a1a; margin: 10% auto; padding: 20px; width: 85%; max-width: 450px; border-radius: 12px; border: 1px solid var(--primary); position: relative; }
-    .mastery-list { background: #000; padding: 10px; border-radius: 6px; margin-top: 10px; font-family: monospace; font-size: 0.8rem; line-height: 1.5; }
-    .mastery-item { display: flex; border-bottom: 1px solid #222; padding: 2px 0; }
-    .mastery-pt { color: var(--highlight); width: 70px; flex-shrink: 0; }
-    .btn-main { background: var(--secondary); color:#000; border:none; padding: 12px; border-radius:6px; font-weight:bold; cursor:pointer; width: 100%; margin-top: 15px; }
-
-    details { margin-top: 10px; border-top: 1px dashed #444; }
-    summary { padding: 10px; font-size: 0.75rem; cursor: pointer; color: var(--primary); text-align: center; }
-
-    /* ローディング */
-    #loadingOverlay { position: fixed; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.4s; }
-    #loadingOverlay.hidden { opacity: 0; pointer-events: none; }
-    .loading-text { color: var(--primary); font-size: 1.1rem; letter-spacing: 0.1em; }
-</style>
-```
-
+        details { margin-top: 10px; border-top: 1px dashed #444; }
+        summary { padding: 10px; font-size: 0.75rem; cursor: pointer; color: var(--primary); text-align: center; }
+    </style>
 </head>
 <body>
-
-<div id="loadingOverlay">
-    <div class="loading-text">⏳ データ読み込み中...</div>
-</div>
 
 <nav class="main-nav">
     <button class="main-tab-btn active" onclick="switchMainTab('sim-section', event)">網羅型シミュレータ</button>
@@ -100,38 +89,35 @@
         <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
             <h3 style="margin-top:0; color:var(--primary);">🎯 目標スキルを選択 (最大3つ)</h3>
             <div id="skillListPanel" class="skill-selector-grid"></div>
+            
+            <h3 style="margin-top:20px; color:var(--primary);">🔒 装備固定 (任意)</h3>
+            <div class="lock-container">
+                <div class="lock-box"><label>武器</label><select id="lock-weapon" class="lock-select"><option value="">指定なし</option></select></div>
+                <div class="lock-box"><label>盾</label><select id="lock-shield" class="lock-select"><option value="">指定なし</option></select></div>
+                <div class="lock-box"><label>防具</label><select id="lock-armor" class="lock-select"><option value="">指定なし</option></select></div>
+                <div class="lock-box"><label>アクセ</label><select id="lock-accessory" class="lock-select"><option value="">指定なし</option></select></div>
+                <div class="lock-box"><label>ペット</label><select id="lock-pet" class="lock-select"><option value="">指定なし</option></select></div>
+            </div>
 
-```
-        <h3 style="margin-top:20px; color:var(--primary);">🔒 装備固定 (任意)</h3>
-        <div class="lock-container">
-            <div class="lock-box"><label>武器</label><select id="lock-weapon" class="lock-select"><option value="">指定なし</option></select></div>
-            <div class="lock-box"><label>盾</label><select id="lock-shield" class="lock-select"><option value="">指定なし</option></select></div>
-            <div class="lock-box"><label>防具</label><select id="lock-armor" class="lock-select"><option value="">指定なし</option></select></div>
-            <div class="lock-box"><label>アクセ</label><select id="lock-accessory" class="lock-select"><option value="">指定なし</option></select></div>
-            <div class="lock-box"><label>ペット</label><select id="lock-pet" class="lock-select"><option value="">指定なし</option></select></div>
+            <button class="btn-main" onclick="runSmartScan()">網羅検索を実行</button>
         </div>
+        <div id="simResultsArea" style="margin-top: 30px;"></div>
+    </section>
 
-        <button class="btn-main" onclick="runSmartScan()">網羅検索を実行</button>
-    </div>
-    <div id="simResultsArea" style="margin-top: 30px;"></div>
-</section>
-
-<section id="list-section" class="content-section">
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchSubTab('weapon', event)">武器</button>
-        <button class="tab-btn" onclick="switchSubTab('shield', event)">盾</button>
-        <button class="tab-btn" onclick="switchSubTab('armor', event)">防具</button>
-        <button class="tab-btn" onclick="switchSubTab('accessory', event)">アクセサリ</button>
-        <button class="tab-btn" onclick="switchSubTab('pet', event)">ペット</button>
-    </div>
-    <div id="weapon" class="grid-container active"></div>
-    <div id="shield" class="grid-container"></div>
-    <div id="armor" class="grid-container"></div>
-    <div id="accessory" class="grid-container"></div>
-    <div id="pet" class="grid-container"></div>
-</section>
-```
-
+    <section id="list-section" class="content-section">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchSubTab('weapon', event)">武器</button>
+            <button class="tab-btn" onclick="switchSubTab('shield', event)">盾</button>
+            <button class="tab-btn" onclick="switchSubTab('armor', event)">防具</button>
+            <button class="tab-btn" onclick="switchSubTab('accessory', event)">アクセサリ</button>
+            <button class="tab-btn" onclick="switchSubTab('pet', event)">ペット</button>
+        </div>
+        <div id="weapon" class="grid-container active"></div>
+        <div id="shield" class="grid-container"></div>
+        <div id="armor" class="grid-container"></div>
+        <div id="accessory" class="grid-container"></div>
+        <div id="pet" class="grid-container"></div>
+    </section>
 </div>
 
 <div id="detailModal" class="modal" onclick="closeModal()">
@@ -182,7 +168,7 @@
         if (!item) return;
         let html = `<div>${['スキル1','スキル2','スキル3'].map(k => (item[k] && item[k]!=='-') ? `<span class="skill-tag" onclick="event.stopPropagation(); showSkillDetail('${item[k]}')">${item[k]}</span>` : '').join('')}</div>`;
         html += `<div class="mastery-list">`;
-        ["100pt","250pt","500pt","1000pt","1500pt","2500pt","3500pt","5000pt","7500pt","10000pt"].forEach(pt => {
+        ["100pt","250pt","500pt","1000pt","2500pt","3500pt","5000pt","7500pt","10000pt"].forEach(pt => {
             if(item[pt] && item[pt] !== '-') html += `<div class="mastery-item"><span class="mastery-pt">${pt}</span><span>${item[pt]}</span></div>`;
         });
         html += `</div>`;
@@ -205,11 +191,11 @@
                 if (lockedName) {
                     candidates[cat] = categoryData[cat].filter(i => i.名称 === lockedName);
                 } else {
-                    const hasSkill = categoryData[cat].filter(item =>
+                    const hasSkill = categoryData[cat].filter(item => 
                         targets.some(t => [item.スキル1, item.スキル2, item.スキル3].includes(t))
                     );
                     const baseItems = categoryData[cat].slice(0, 5);
-                    candidates[cat] = [...new Map([...hasSkill, ...baseItems].map(i => [i.名称, i])).values()];
+                    candidates[cat] = [...new Set([...hasSkill, ...baseItems])];
                 }
             });
 
@@ -226,9 +212,11 @@
                                     });
                                 });
 
+                                // マスタリーによる+1ptの判定
                                 let updateSkill = null;
                                 const cands = Object.keys(counts).filter(k => counts[k] === 2);
                                 if (cands.length > 0) {
+                                    // 目標スキルの2ptを優先、なければ他のスキル
                                     updateSkill = cands.find(k => targets.includes(k)) || cands[0];
                                     counts[updateSkill]++;
                                 }
@@ -237,7 +225,7 @@
                                     let activeCount = Object.values(counts).filter(v => v >= 3).length;
                                     rawPatterns.push({
                                         combo: [w, s, a, ac, p],
-                                        counts: {...counts},
+                                        counts: {...counts}, // 値をコピー
                                         activeCount, updateSkill,
                                         key: Object.keys(counts).filter(k => counts[k] >= 3).sort().join(',')
                                     });
@@ -298,53 +286,46 @@
         }, 50);
     }
 
-    // --- データ初期化 (JSON版) ---
-    async function loadData() {
-        try {
-            // skill.json を読み込んでスキルチップを生成
-            const skillRes = await fetch('data/skill.json');
-            const skillList = await skillRes.json();
-            skillList.forEach(row => {
-                if (!row.名称) return;
-                skillData[row.名称.trim()] = row;
-                const chip = document.createElement('div');
-                chip.className = 'skill-chip';
-                chip.innerText = row.名称;
-                chip.onclick = () => toggleSkill(row.名称, chip);
-                document.getElementById('skillListPanel').appendChild(chip);
-            });
-
-            // 各カテゴリの JSON を並列取得
-            await Promise.all(categories.map(async cat => {
-                const res = await fetch(`data/${cat}.json`);
-                const data = await res.json();
-                categoryData[cat] = data;
-                renderList(cat, data);
-                const select = document.getElementById(`lock-${cat}`);
-                data.forEach(item => {
-                    if (item.名称) {
-                        const opt = document.createElement('option');
-                        opt.value = item.名称;
-                        opt.innerText = item.名称;
-                        select.appendChild(opt);
-                    }
+    // --- データ初期化 ---
+    function loadData() {
+        Papa.parse("data/skill.csv", {
+            download: true, header: true, skipEmptyLines: true,
+            complete: function(res) {
+                res.data.forEach(row => {
+                    if(!row.名称) return;
+                    skillData[row.名称.trim()] = row;
+                    const chip = document.createElement('div');
+                    chip.className = 'skill-chip';
+                    chip.innerText = row.名称;
+                    chip.onclick = () => toggleSkill(row.名称, chip);
+                    document.getElementById('skillListPanel').appendChild(chip);
                 });
-            }));
-        } catch (e) {
-            console.error('データ読み込みエラー:', e);
-            alert('データの読み込みに失敗しました。data/ フォルダにJSONファイルが存在するか確認してください。');
-        } finally {
-            // ローディング非表示
-            const overlay = document.getElementById('loadingOverlay');
-            overlay.classList.add('hidden');
-            setTimeout(() => overlay.remove(), 400);
-        }
+                
+                categories.forEach(cat => {
+                    Papa.parse(`data/${cat}.csv`, {
+                        download: true, header: true, skipEmptyLines: true,
+                        complete: function(r) {
+                            categoryData[cat] = r.data;
+                            renderList(cat, r.data);
+                            const select = document.getElementById(`lock-${cat}`);
+                            r.data.forEach(item => {
+                                if(item.名称) {
+                                    const opt = document.createElement('option');
+                                    opt.value = item.名称; opt.innerText = item.名称;
+                                    select.appendChild(opt);
+                                }
+                            });
+                        }
+                    });
+                });
+            }
+        });
     }
 
     function renderList(cat, data) {
         const container = document.getElementById(cat);
         container.innerHTML = data.map(row => {
-            if (!row.名称) return '';
+            if(!row.名称) return '';
             const sks = ['スキル1','スキル2','スキル3'].map(k => row[k]).filter(v => v && v !== '-');
             return `
                 <div class="item-card" onclick="showItemDetail('${cat}', '${row.名称}')">
@@ -356,6 +337,5 @@
 
     window.onload = loadData;
 </script>
-
 </body>
 </html>
