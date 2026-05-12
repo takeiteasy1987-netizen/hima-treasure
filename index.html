@@ -228,90 +228,133 @@
                 : categoryData[cat];
         });
 
-        // Web Worker でバックグラウンド処理（画面フリーズを防ぐ）
+        // Web Worker でバックグラウンド処理
         const workerCode = `
+            // C(n,k) の全組み合わせを生成
+            function combinations(arr, k) {
+                if (k === 0) return [[]];
+                if (arr.length < k) return [];
+                const [first, ...rest] = arr;
+                return [
+                    ...combinations(rest, k - 1).map(c => [first, ...c]),
+                    ...combinations(rest, k)
+                ];
+            }
+
+            // 直積を生成
+            function cartesian(arrays) {
+                return arrays.reduce((acc, arr) =>
+                    acc.flatMap(a => arr.map(b => [...a, b])), [[]]
+                );
+            }
+
             self.onmessage = function(e) {
                 const { candidates, targets, categories } = e.data;
                 const grouped = {};
                 let checked = 0;
+                const N = categories.length; // 5
 
                 function getSkills(item) {
                     return [item['スキル1'], item['スキル2'], item['スキル3']].filter(s => s && s !== '-');
                 }
 
-                // 事前フィルタは使わず全件対象（フィルタは漏れが出るため）
-                // 枝刈りのみで高速化する（数学的に正確＝漏れなし）
+                // ── 逆引きアルゴリズム ──
+                // 目標スキルXを3ptにする方法:
+                //   A: 5装備のうち3つが自然に持つ
+                //   B: 2つが持ち + +1pt枠で底上げ（+1pt枠は全体で1つのみ）
                 //
-                // 枝刈り条件: この時点で残り装備を全部積んでも目標ptに届かないなら即スキップ
-                //   weapon+shield後 → 残り3装備×3sk=9pt + +1pt枠1 = 10pt補充可能
-                //   +armor後        → 残り2装備×3sk=6pt + +1pt枠1 = 7pt補充可能
-                //   +accessory後    → 残り1装備×3sk=3pt + +1pt枠1 = 4pt補充可能
+                // plus_one_idx: +1pt枠を使う目標スキルのindex（nullなら使わない or 非目標に使う）
+                const plusOneOptions = [null, ...targets.map((_, i) => i)];
+                const catIndices = [0,1,2,3,4];
 
-                const total = candidates.weapon.length * candidates.shield.length *
-                              candidates.armor.length * candidates.accessory.length * candidates.pet.length;
+                for (const plusOneIdx of plusOneOptions) {
+                    // 各targetに必要なpt数
+                    const needed = targets.map((_, i) => i === plusOneIdx ? 2 : 3);
 
-                for (let w of candidates.weapon) {
-                    const c1 = {};
-                    getSkills(w).forEach(sk => c1[sk] = (c1[sk]||0) + 1);
+                    // 各targetを「何カテゴリが担うか」の割り当て全組み合わせ
+                    const catCombosPerTarget = targets.map((_, i) => combinations(catIndices, needed[i]));
+                    const allAssignments = cartesian(catCombosPerTarget);
 
-                    for (let s of candidates.shield) {
-                        const c2 = {...c1};
-                        getSkills(s).forEach(sk => c2[sk] = (c2[sk]||0) + 1);
-                        const def2 = targets.reduce((sum, t) => sum + Math.max(0, 3 - (c2[t]||0)), 0);
-                        if (def2 > 10) continue;
+                    for (const assignment of allAssignments) {
+                        // 各カテゴリが担うべきスキルセット
+                        const catRequired = Array.from({length: N}, () => new Set());
+                        assignment.forEach((assignedCats, ti) => {
+                            assignedCats.forEach(ci => catRequired[ci].add(targets[ti]));
+                        });
 
-                        for (let a of candidates.armor) {
-                            const c3 = {...c2};
-                            getSkills(a).forEach(sk => c3[sk] = (c3[sk]||0) + 1);
-                            const def3 = targets.reduce((sum, t) => sum + Math.max(0, 3 - (c3[t]||0)), 0);
-                            if (def3 > 7) continue;
+                        // 各カテゴリの候補を絞る
+                        const candArrays = [];
+                        let valid = true;
+                        for (let ci = 0; ci < N; ci++) {
+                            const cat = categories[ci];
+                            const req = catRequired[ci];
+                            let pool;
+                            if (req.size > 0) {
+                                pool = candidates[cat].filter(item => {
+                                    const sks = new Set(getSkills(item));
+                                    for (const r of req) if (!sks.has(r)) return false;
+                                    return true;
+                                });
+                            } else {
+                                pool = candidates[cat];
+                            }
+                            if (pool.length === 0) { valid = false; break; }
+                            candArrays.push(pool);
+                        }
+                        if (!valid) continue;
 
-                            for (let ac of candidates.accessory) {
-                                const c4 = {...c3};
-                                getSkills(ac).forEach(sk => c4[sk] = (c4[sk]||0) + 1);
-                                const def4 = targets.reduce((sum, t) => sum + Math.max(0, 3 - (c4[t]||0)), 0);
-                                if (def4 > 4) continue;
+                        // 候補の直積をチェック
+                        for (const combo of cartesian(candArrays)) {
+                            checked++;
+                            const counts = {};
+                            combo.forEach(item => {
+                                getSkills(item).forEach(sk => counts[sk] = (counts[sk]||0) + 1);
+                            });
 
-                                for (let p of candidates.pet) {
-                                    checked++;
-                                    const counts = {...c4};
-                                    getSkills(p).forEach(sk => counts[sk] = (counts[sk]||0) + 1);
-
-                                    // +1pt: 2ptスキルを1つだけ3ptに底上げ（目標スキル優先）
-                                    let updateSkill = null;
-                                    const cands2 = Object.keys(counts).filter(k => counts[k] === 2);
-                                    if (cands2.length > 0) {
-                                        updateSkill = cands2.find(k => targets.includes(k)) || cands2[0];
-                                        counts[updateSkill]++;
-                                    }
-
-                                    // 目標スキルが全て3pt以上、かつ合計3スキル以上発動
-                                    const activeSkills = Object.keys(counts).filter(k => counts[k] >= 3);
-                                    if (targets.every(t => counts[t] >= 3) && activeSkills.length >= 3) {
-                                        const activeCount = activeSkills.length;
-                                        const key = [...activeSkills].sort().join(',');
-                                        const entry = {
-                                            combo: [w, s, a, ac, p].map(i => i['名称']),
-                                            counts: {...counts},
-                                            activeCount,
-                                            updateSkill,
-                                            key
-                                        };
-                                        if (!grouped[key]) {
-                                            grouped[key] = { main: entry, others: [] };
-                                        } else if (activeCount > grouped[key].main.activeCount) {
-                                            grouped[key].others.push(grouped[key].main);
-                                            grouped[key].main = entry;
-                                        } else {
-                                            grouped[key].others.push(entry);
-                                        }
-                                    }
-
-                                    if (checked % 50000 === 0) {
-                                        self.postMessage({ type: 'progress', checked, total });
-                                    }
+                            // +1pt枠の適用
+                            let updateSkill = null;
+                            if (plusOneIdx !== null) {
+                                const t = targets[plusOneIdx];
+                                if ((counts[t]||0) === 2) {
+                                    counts[t]++;
+                                    updateSkill = t;
+                                } else {
+                                    continue; // +1pt前提だが2ptになっていない
+                                }
+                            } else {
+                                // 目標以外の2ptスキルに使える
+                                const cands2 = Object.keys(counts).filter(k => counts[k] === 2);
+                                if (cands2.length > 0) {
+                                    updateSkill = cands2.find(k => targets.includes(k)) || cands2[0];
+                                    counts[updateSkill]++;
                                 }
                             }
+
+                            const activeSkills = Object.keys(counts).filter(k => counts[k] >= 3);
+                            if (!targets.every(t => (counts[t]||0) >= 3)) continue;
+                            if (activeSkills.length < 3) continue;
+
+                            const activeCount = activeSkills.length;
+                            const key = [...activeSkills].sort().join(',');
+                            const entry = {
+                                combo: combo.map(i => i['名称']),
+                                counts: {...counts},
+                                activeCount,
+                                updateSkill,
+                                key
+                            };
+                            if (!grouped[key]) {
+                                grouped[key] = { main: entry, others: [] };
+                            } else if (activeCount > grouped[key].main.activeCount) {
+                                grouped[key].others.push(grouped[key].main);
+                                grouped[key].main = entry;
+                            } else {
+                                grouped[key].others.push(entry);
+                            }
+                        }
+
+                        if (checked % 10000 === 0) {
+                            self.postMessage({ type: 'progress', checked });
                         }
                     }
                 }
@@ -328,9 +371,8 @@
         scanWorker.onmessage = function(e) {
             const { type } = e.data;
             if (type === 'progress') {
-                const pct = Math.floor(e.data.checked / e.data.total * 100);
                 const progressEl = resultsArea.querySelector('.progress-text');
-                if (progressEl) progressEl.textContent = `${pct}% (${e.data.checked.toLocaleString()} / ${e.data.total.toLocaleString()} 通り)`;
+                if (progressEl) progressEl.textContent = `${e.data.checked.toLocaleString()} 通りチェック済み...`;
             } else if (type === 'done') {
                 scanWorker = null;
                 renderResults(e.data.sortedGroups, e.data.total, targets);
